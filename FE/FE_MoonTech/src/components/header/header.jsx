@@ -6,9 +6,11 @@ import {
   MenuOutlined,
   ShoppingCartOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router";
 
 function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navItems = [
     { key: "home", label: "Home", href: "#" },
@@ -21,10 +23,12 @@ function Header() {
     {
       key: "1",
       label: "Sign In",
+      onClick: () => navigate("/login"),
     },
     {
       key: "2",
       label: "Sign Up",
+      onClick: () => navigate("/signup"),
     },
     {
       type: "divider",
@@ -32,6 +36,7 @@ function Header() {
     {
       key: "3",
       label: "My Account",
+      onClick: () => navigate("/profile"),
     },
   ];
 
@@ -49,6 +54,7 @@ function Header() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center space-x-3 cursor-pointer"
+            onClick={() => navigate("/")}
           >
             <div className="relative">
               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
