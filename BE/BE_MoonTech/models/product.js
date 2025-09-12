@@ -6,6 +6,11 @@ var productSchema = new Schema(
       type: String,
       required: true,
     },
+    category: {
+      type: Schema.Types.ObjectId,
+      ref: "Categories",
+      required: true,
+    },
     description: {
       type: String,
       required: false,
