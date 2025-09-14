@@ -14,10 +14,12 @@ const registerUser = async (req, res, next) => {
     }
 
     const result = await Users.create({
+      username: req.body.username,
       email: req.body.email,
       password: hashPassword,
       phone: req.body.phone,
       admin: req.body.admin,
+      avatar: req.body.avatar,
     });
 
     if (!result) {
@@ -32,7 +34,7 @@ const registerUser = async (req, res, next) => {
 
 const loginUser = async (req, res, next) => {
   try {
-    const foundUser = await Users.findOne({ email: req.body.email });
+    const foundUser = await Users.findOne({ email: req.body.email }).lean();
 
     if (foundUser) {
       const correctPass = await bcrypt.compare(

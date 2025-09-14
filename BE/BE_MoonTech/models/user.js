@@ -15,8 +15,14 @@ var userSchema = new Schema(
       required: true,
     },
     phone: {
-      type: Number,
+      type: String,
       required: true,
+      validate: {
+        validator: function (v) {
+          return /^(\+84|84|0)[35789]\d{8}$/.test(v);
+        },
+        message: "Invalid phone number format",
+      },
     },
     avatar: {
       type: String,
