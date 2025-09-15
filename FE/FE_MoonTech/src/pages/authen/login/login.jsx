@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { MailOutlined, LockOutlined } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import { useNavigate } from "react-router";
+import { loginFunction } from "../../../services/apiServices";
+import toast from "react-hot-toast";
 
 const { Title, Link } = Typography;
 
@@ -12,13 +14,22 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const onFinish = (values) => {
+  const onFinish = async (values) => {
     setLoading(true);
-    // Simulate login API call
-    setTimeout(() => {
-      console.log("Login values:", values);
+    try {
+      const res = await loginFunction(values);
+      if (res) {
+        sessionStorage.setItem("token", res.accessToken);
+        toast.success("Login success!");
+        navigate("/");
+      } else {
+        toast.error("Login failed, please try again!");
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (

@@ -8,20 +8,39 @@ import {
   PhoneOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
+import { useNavigate } from "react-router";
+import { registerFunction } from "../../../services/apiServices";
+import toast from "react-hot-toast";
 
 const { Title, Link } = Typography;
 
 const Register = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const onFinish = (values) => {
+  const onFinish = async (values) => {
     setLoading(true);
-    // Simulate register API call
-    setTimeout(() => {
-      console.log("Register values:", values);
+    try {
+      const payload = {
+        username: values.username,
+        email: values.email,
+        phone: values.phone,
+        password: values.password,
+      };
+      const res = await registerFunction(payload);
+
+      if (res) {
+        toast.success("Create account success!");
+        navigate("/login");
+      } else {
+        toast.error("Create account failed!");
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
