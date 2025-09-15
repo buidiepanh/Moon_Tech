@@ -157,7 +157,10 @@ const deleteCategory = async (req, res, next) => {
 //==================Cart API=====================
 const getUserCartItem = async (req, res, next) => {
   try {
-    const result = await Carts.find({ user: req.user._id });
+    const result = await Carts.find({ user: req.user._id }).populate(
+      "cartItem.product",
+      "name price"
+    );
 
     if (!result) {
       res.status(400).json("User cart is empty!");
@@ -206,17 +209,33 @@ const addNewCart = async (req, res, next) => {
 
 const updateCartItem = async (req, res, next) => {
   try {
-    const result = await Carts.findByIdAndUpdate(
-      req.params.cartId,
-      { $set: req.body },
-      { new: true }
+    const { quantity } = req.body.cartItem;
+    const cart = await Carts.findOne({ user: req.user._id });
+    if (!cart) {
+      return res.status(404).json("Cart not found!");
+    }
+
+    const productId = req.params.itemId;
+    if (!productId) {
+      return res.status(400).json("Product ID is required");
+    }
+
+    const index = cart.cartItem.findIndex(
+      (item) => item.product.toString() === productId.toString()
     );
 
-    if (!result) {
-      res.status(400).json("Cannot update item quantity!");
-      return null;
+    if (index === -1) {
+      return res.status(404).json("Product not found in cart!");
     }
-    return res.status(200).json(result);
+
+    if (!quantity || quantity < 1) {
+      return res.status(400).json("Quantity must be at least 1");
+    }
+
+    cart.cartItem[index].quantity = quantity;
+    await cart.save();
+
+    return res.status(200).json("Update item quantity success!");
   } catch (error) {
     next(error);
   }
@@ -224,7 +243,7 @@ const updateCartItem = async (req, res, next) => {
 
 const deleteCartItem = async (req, res, next) => {
   try {
-    const { product } = req.body.cartItems;
+    const product = req.params.itemId;
     if (!product) {
       return res.status(400).json("Product ID is required");
     }
@@ -244,7 +263,7 @@ const deleteCartItem = async (req, res, next) => {
     cart.cartItem.splice(selectedItem, 1);
     await cart.save();
 
-    return res.status(200).json(result);
+    return res.status(200).json("Delete item success!");
   } catch (error) {
     next(error);
   }

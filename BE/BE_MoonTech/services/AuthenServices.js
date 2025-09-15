@@ -48,7 +48,7 @@ const loginUser = async (req, res, next) => {
         const token = jwt.sign(foundUser, process.env.JWT_SECRET_KEY, {
           expiresIn: process.env.JWT_EXPIRES_IN,
         });
-        res.status(200).json({ accessToken: token });
+        return res.status(200).json({ accessToken: token });
       }
     } else {
       res.status(401).json("No email found!");

@@ -13,6 +13,6 @@ cartRouter.use(bodyparser.json());
 cartRouter.use(authenticate);
 
 cartRouter.route("/").get(getUserCartItem).post(addNewCart);
-cartRouter.route("/:cartId").put(updateCartItem).delete(deleteCartItem);
+cartRouter.route("/:itemId").put(updateCartItem).delete(deleteCartItem);
 
 module.exports = cartRouter;
