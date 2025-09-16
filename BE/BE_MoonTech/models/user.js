@@ -26,7 +26,6 @@ var userSchema = new Schema(
     },
     avatar: {
       type: String,
-      required: true,
     },
     admin: {
       type: Boolean,

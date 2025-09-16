@@ -1,11 +1,14 @@
 const Products = require("../models/product");
 const Categories = require("../models/category");
 const Carts = require("../models/cart");
+const Brands = require("../models/brand");
 
 //==================Product API================
 const getAllProducts = async (req, res, next) => {
   try {
-    const result = await Products.find({}).populate("category", "cateName");
+    const result = await Products.find({})
+      .populate("category", "cateName")
+      .populate("brand", "brandName");
 
     if (!result) {
       res.status(404).json("No product found!");
@@ -22,12 +25,16 @@ const addNewProduct = async (req, res, next) => {
     if (req.user.admin) {
       const result = await Products.create(req.body);
       const cateId = req.body.category;
+      const brandId = req.body.brand;
 
       if (!result) {
         res.status(400).json("Cannot add product!");
         return null;
       }
       await Categories.findByIdAndUpdate(cateId, {
+        $push: { products: result._id },
+      });
+      await Brands.findByIdAndUpdate(brandId, {
         $push: { products: result._id },
       });
       return res.status(200).json(result);
@@ -269,6 +276,80 @@ const deleteCartItem = async (req, res, next) => {
   }
 };
 
+//==================Brand API====================
+const getAllBrand = async (req, res, next) => {
+  try {
+    const result = await Brands.find({}).populate("products", "name");
+
+    if (!result) {
+      res.status(404).json("No brand found!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addNewBrand = async (req, res, next) => {
+  try {
+    if (req.user.admin) {
+      const result = await Brands.create(req.body);
+
+      if (!result) {
+        res.status(400).json("Cannot add brand!");
+        return null;
+      }
+      return res.status(200).json(result);
+    } else {
+      return res.status(401).json("You don't have permisson to do this!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateBrand = async (req, res, next) => {
+  try {
+    if (req.user.admin) {
+      const result = await Brands.findByIdAndUpdate(
+        req.params.brandId,
+        { $set: req.body },
+        { new: true }
+      );
+
+      if (!result) {
+        res.status(400).json("Cannot update brand!");
+        return null;
+      }
+
+      return res.status(200).json(result);
+    } else {
+      return res.status(401).json("You don't have permisson to do this!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteBrand = async (req, res, next) => {
+  try {
+    if (req.user.admin) {
+      const result = await Brands.findByIdAndDelete(req.params.brandId);
+
+      if (!result) {
+        res.status(400).json("Cannot delete brand!");
+        return null;
+      }
+      return res.status(200).json("Delete brand success!");
+    } else {
+      return res.status(401).json("You don't have permisson to do this!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllProducts,
   addNewProduct,
@@ -284,4 +365,9 @@ module.exports = {
   addNewCart,
   updateCartItem,
   deleteCartItem,
+
+  getAllBrand,
+  addNewBrand,
+  updateBrand,
+  deleteBrand,
 };
