@@ -1,0 +1,454 @@
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  Rate,
+  Button,
+  Badge,
+  Avatar,
+  Divider,
+  Tag,
+  InputNumber,
+  Tabs,
+  Space,
+  Input,
+  Form,
+  message,
+  Spin,
+} from "antd";
+import {
+  ShoppingCartOutlined,
+  HeartOutlined,
+  ShareAltOutlined,
+  StarFilled,
+  UserOutlined,
+  SendOutlined,
+} from "@ant-design/icons";
+import { motion } from "framer-motion";
+import { useParams } from "react-router";
+import { getAllProducts } from "../../../services/apiServices";
+
+const { TabPane } = Tabs;
+const { TextArea } = Input;
+
+function Details() {
+  const { productId } = useParams();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [form] = Form.useForm();
+  const [userRating, setUserRating] = useState(0);
+
+  useEffect(() => {
+    fetchProductInfo();
+  }, [productId]);
+
+  const fetchProductInfo = async () => {
+    try {
+      setLoading(true);
+      const res = await getAllProducts();
+      const p = res.find(
+        (item) => item._id.toString() === productId.toString()
+      );
+      setProduct(p);
+    } catch (error) {
+      console.log(error);
+      message.error("Failed to load product details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
+  const imageVariants = {
+    hover: { scale: 1.05, transition: { duration: 0.3 } },
+  };
+
+  const handleReviewSubmit = async (values) => {
+    try {
+      // Mock API call - replace with actual API
+      console.log("New review:", {
+        ...values,
+        rating: userRating,
+        author: "Current User", // Replace with actual user data
+        date: "Just now",
+      });
+
+      message.success("Review submitted successfully!");
+      form.resetFields();
+      setUserRating(0);
+    } catch (error) {
+      message.error("Failed to submit review. Please try again.");
+    }
+  };
+
+  const calculateOriginalPrice = (price, salePercentage) => {
+    if (!salePercentage) return null;
+    return Math.round(price / (1 - salePercentage / 100));
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat("vi-VN").format(price);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white flex items-center justify-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Product Not Found
+          </h2>
+          <p className="text-gray-600">
+            The product you're looking for doesn't exist.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const originalPrice = calculateOriginalPrice(product.price, product.sale);
+  const savings = originalPrice ? originalPrice - product.price : 0;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-4 lg:p-8">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-7xl mx-auto"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          {/* Product Images */}
+          <motion.div variants={itemVariants} className="space-y-4">
+            <motion.div
+              className="relative overflow-hidden rounded-2xl shadow-2xl bg-white"
+              variants={imageVariants}
+              whileHover="hover"
+            >
+              {product.sale > 0 && (
+                <Badge.Ribbon
+                  text={`${product.sale}% OFF`}
+                  color="red"
+                  className="text-sm font-bold"
+                >
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-96 lg:h-[500px] object-cover"
+                    onError={(e) => {
+                      e.target.src =
+                        "https://via.placeholder.com/500x500?text=No+Image";
+                    }}
+                  />
+                </Badge.Ribbon>
+              )}
+              {product.sale === 0 && (
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-96 lg:h-[500px] object-cover"
+                  onError={(e) => {
+                    e.target.src =
+                      "https://via.placeholder.com/500x500?text=No+Image";
+                  }}
+                />
+              )}
+            </motion.div>
+          </motion.div>
+
+          {/* Product Info */}
+          <motion.div variants={itemVariants} className="space-y-6">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <Tag color="red" className="px-3 py-1 text-sm font-medium">
+                  {product.category?.cateName || "General"}
+                </Tag>
+                {product.brand?.brandName && (
+                  <Tag color="blue" className="px-3 py-1 text-sm font-medium">
+                    {product.brand.brandName}
+                  </Tag>
+                )}
+              </div>
+              <motion.h1
+                className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight"
+                variants={itemVariants}
+              >
+                {product.name}
+              </motion.h1>
+            </div>
+
+            {/* Rating & Reviews */}
+            <motion.div
+              variants={itemVariants}
+              className="flex items-center gap-4"
+            >
+              <Rate
+                disabled
+                defaultValue={product.rating || 0}
+                className="text-red-500"
+                allowHalf
+              />
+              <span className="text-lg font-semibold text-gray-700">
+                {product.rating || 0}
+              </span>
+              <span className="text-gray-500">
+                ({product.review?.length || 0} reviews)
+              </span>
+            </motion.div>
+
+            {/* Price */}
+            <motion.div
+              variants={itemVariants}
+              className="flex items-center gap-4 flex-wrap"
+            >
+              <span className="text-4xl font-bold text-red-600">
+                {formatPrice(product.price)}₫
+              </span>
+              {originalPrice && product.sale > 0 && (
+                <>
+                  <span className="text-2xl text-gray-400 line-through">
+                    {formatPrice(originalPrice)}₫
+                  </span>
+                  <Badge
+                    count={`Save ${formatPrice(savings)}₫`}
+                    className="bg-red-500"
+                    style={{ backgroundColor: "#ef4444" }}
+                  />
+                </>
+              )}
+            </motion.div>
+
+            {/* Description */}
+            <motion.p
+              variants={itemVariants}
+              className="text-gray-600 text-lg leading-relaxed"
+            >
+              {product.description}
+            </motion.p>
+
+            {/* Quantity & Actions */}
+            <motion.div variants={itemVariants} className="space-y-4">
+              <div className="flex items-center gap-4">
+                <span className="text-lg font-semibold text-gray-700">
+                  Quantity:
+                </span>
+                <InputNumber
+                  min={1}
+                  max={10}
+                  value={quantity}
+                  onChange={setQuantity}
+                  size="large"
+                  className="w-24"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<ShoppingCartOutlined />}
+                    className="bg-red-600 hover:bg-red-700 border-red-600 h-12 px-8 text-lg font-semibold w-full sm:w-auto"
+                  >
+                    Add to Cart
+                  </Button>
+                </motion.div>
+
+                <Space>
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Button
+                      size="large"
+                      icon={<HeartOutlined />}
+                      className="h-12 w-12 flex items-center justify-center border-red-300 text-red-500 hover:bg-red-50"
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Button
+                      size="large"
+                      icon={<ShareAltOutlined />}
+                      className="h-12 w-12 flex items-center justify-center border-red-300 text-red-500 hover:bg-red-50"
+                    />
+                  </motion.div>
+                </Space>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Reviews Section */}
+        <motion.div variants={itemVariants} className="mt-16">
+          <Card className="shadow-lg border-0 rounded-2xl overflow-hidden">
+            <div className="space-y-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    Customer Reviews
+                  </h3>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Rate
+                      disabled
+                      defaultValue={product.rating || 0}
+                      className="text-red-500"
+                      allowHalf
+                    />
+                    <span className="text-lg font-semibold">
+                      {product.rating || 0} out of 5
+                    </span>
+                    <span className="text-gray-500">
+                      Based on {product.review?.length || 0} reviews
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add Review Form */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-red-50 p-6 rounded-xl border border-red-100"
+              >
+                <h4 className="text-xl font-bold text-gray-900 mb-4">
+                  Write a Review
+                </h4>
+                <Form
+                  form={form}
+                  onFinish={handleReviewSubmit}
+                  layout="vertical"
+                >
+                  <Form.Item label="Your Rating" className="mb-4">
+                    <Rate
+                      value={userRating}
+                      onChange={setUserRating}
+                      className="text-red-500 text-2xl"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="content"
+                    label="Your Review"
+                    rules={[
+                      { required: true, message: "Please write your review!" },
+                      {
+                        min: 10,
+                        message: "Review must be at least 10 characters long!",
+                      },
+                    ]}
+                  >
+                    <TextArea
+                      rows={4}
+                      placeholder="Share your experience with this product..."
+                      className="rounded-lg"
+                    />
+                  </Form.Item>
+
+                  <Form.Item className="mb-0">
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        icon={<SendOutlined />}
+                        size="large"
+                        className="bg-red-600 hover:bg-red-700 border-red-600 px-8"
+                        disabled={userRating === 0}
+                      >
+                        Submit Review
+                      </Button>
+                    </motion.div>
+                  </Form.Item>
+                </Form>
+              </motion.div>
+
+              <Divider className="border-gray-300" />
+
+              {/* Existing Reviews */}
+              <div className="grid gap-6">
+                {product.review && product.review.length > 0 ? (
+                  product.review.map((review, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-gray-50 p-6 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+                    >
+                      <div className="flex items-start gap-4">
+                        <Avatar
+                          size="large"
+                          icon={<UserOutlined />}
+                          className="bg-red-500"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-lg text-gray-900">
+                              {review.author || "Anonymous"}
+                            </h4>
+                            <span className="text-gray-500 text-sm">
+                              {review.date || "Recently"}
+                            </span>
+                          </div>
+                          <Rate
+                            disabled
+                            defaultValue={review.rating || 0}
+                            size="small"
+                            className="text-red-500 mb-3"
+                          />
+                          <p className="text-gray-700 leading-relaxed">
+                            {review.content}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-lg">No reviews yet</p>
+                    <p>Be the first to review this product!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
+export default Details;

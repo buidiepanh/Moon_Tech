@@ -9,11 +9,36 @@ import {
   ThunderboltFilled,
   StarFilled,
 } from "@ant-design/icons";
+import { getAllProducts } from "../../../services/apiServices";
+import { useNavigate } from "react-router";
 
 function Home() {
   const [currentHotIndex, setCurrentHotIndex] = useState(0);
+  const [saleProducts, setSaleProducts] = useState([]);
+  const [hotProducts, setHotProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Carousel banners data
+  useEffect(() => {
+    fetchAllProducts();
+  }, []);
+
+  const fetchAllProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await getAllProducts();
+      const sale = res.filter((item) => item.sale >= 10);
+      const hot = res.filter((item) => item.rating > 4.5);
+
+      setSaleProducts(sale);
+      setHotProducts(hot);
+    } catch (error) {
+      console.log("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const banners = [
     {
       id: 1,
@@ -57,130 +82,34 @@ function Home() {
     },
   ];
 
-  // Big Deal products data
-  const bigDeals = [
-    {
-      id: 1,
-      name: "iPhone 14 Pro Max",
-      originalPrice: 1199,
-      salePrice: 999,
-      discount: 17,
-      image:
-        "https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=300&h=300&fit=crop",
-      rating: 4.8,
-      reviews: 2547,
-      badge: "LIMITED TIME",
-    },
-    {
-      id: 2,
-      name: "MacBook Air M2",
-      originalPrice: 1499,
-      salePrice: 1299,
-      discount: 13,
-      image:
-        "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&h=300&fit=crop",
-      rating: 4.9,
-      reviews: 1823,
-      badge: "BEST SELLER",
-    },
-    {
-      id: 3,
-      name: "Sony WH-1000XM4",
-      originalPrice: 349,
-      salePrice: 249,
-      discount: 29,
-      image:
-        "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=300&h=300&fit=crop",
-      rating: 4.7,
-      reviews: 3241,
-      badge: "HOT DEAL",
-    },
-    {
-      id: 4,
-      name: "Samsung Galaxy S24",
-      originalPrice: 899,
-      salePrice: 749,
-      discount: 17,
-      image:
-        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop",
-      rating: 4.6,
-      reviews: 1456,
-      badge: "NEW ARRIVAL",
-    },
-  ];
+  const bigDeals = saleProducts.slice(0, 4).map((product) => ({
+    id: product._id,
+    name: product.name,
+    originalPrice: Math.round(product.price / (1 - product.sale / 100)),
+    salePrice: product.price,
+    discount: product.sale,
+    image: product.image,
+    rating: product.rating,
+    reviews: product.review ? product.review.length : 0,
+    badge:
+      product.sale >= 20
+        ? "HOT DEAL"
+        : product.sale >= 15
+        ? "BEST SELLER"
+        : "LIMITED TIME",
+    brand: product.brand?.brandName,
+    category: product.category?.cateName,
+  }));
 
-  // Hot products data (high rating products)
-  const hotProducts = [
-    {
-      id: 1,
-      name: 'iPad Pro 12.9"',
-      price: 1099,
-      image:
-        "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=300&h=300&fit=crop",
-      rating: 4.9,
-      reviews: 1567,
-      category: "Tablet",
-    },
-    {
-      id: 2,
-      name: "AirPods Pro 2nd Gen",
-      price: 249,
-      image:
-        "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=300&h=300&fit=crop",
-      rating: 4.8,
-      reviews: 2890,
-      category: "Audio",
-    },
-    {
-      id: 3,
-      name: "Dell XPS 13",
-      price: 1299,
-      image:
-        "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300&h=300&fit=crop",
-      rating: 4.7,
-      reviews: 945,
-      category: "Laptop",
-    },
-    {
-      id: 4,
-      name: "Apple Watch Ultra",
-      price: 799,
-      image:
-        "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=300&h=300&fit=crop",
-      rating: 4.8,
-      reviews: 1234,
-      category: "Wearable",
-    },
-    {
-      id: 5,
-      name: "PlayStation 5",
-      price: 499,
-      image:
-        "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=300&h=300&fit=crop",
-      rating: 4.9,
-      reviews: 3567,
-      category: "Gaming",
-    },
-    {
-      id: 6,
-      name: "Samsung OLED TV",
-      price: 1899,
-      image:
-        "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=300&h=300&fit=crop",
-      rating: 4.6,
-      reviews: 789,
-      category: "TV",
-    },
-  ];
-
-  // Auto-slide hot products
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentHotIndex(
-        (prev) => (prev + 1) % Math.ceil(hotProducts.length / 3)
-      );
-    }, 4000);
-    return () => clearInterval(interval);
+    if (hotProducts.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentHotIndex(
+          (prev) => (prev + 1) % Math.ceil(hotProducts.length / 3)
+        );
+      }, 4000);
+      return () => clearInterval(interval);
+    }
   }, [hotProducts.length]);
 
   const containerVariants = {
@@ -196,6 +125,16 @@ function Home() {
   const itemVariants = {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0 },
+  };
+
+  // Format price for display (assuming price is in VND)
+  const formatPrice = (price) => {
+    if (price >= 1000000) {
+      return `${(price / 1000000).toFixed(1)}M VND`;
+    } else if (price >= 1000) {
+      return `${(price / 1000).toFixed(0)}K VND`;
+    }
+    return `${price} VND`;
   };
 
   return (
@@ -307,96 +246,128 @@ function Home() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {bigDeals.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ scale: 0, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.05, y: -10 }}
-                className="relative"
-              >
-                <Card
-                  hoverable
-                  className="h-full shadow-2xl border-0 overflow-hidden bg-white"
-                  cover={
-                    <div className="relative overflow-hidden">
-                      <img
-                        alt={product.name}
-                        src={product.image}
-                        className="w-full h-48 object-cover transition-transform duration-500 hover:scale-110"
-                      />
-                      <Badge.Ribbon
-                        text={`-${product.discount}%`}
-                        color="red"
-                        className="text-sm font-bold"
-                      />
-                      <Tag
-                        color="volcano"
-                        className="absolute top-2 left-2 font-bold"
-                      >
-                        {product.badge}
-                      </Tag>
-                    </div>
-                  }
-                  actions={[
-                    <Button
-                      key="cart"
-                      type="primary"
-                      icon={<ShoppingCartOutlined />}
-                      className="bg-red-500 hover:bg-red-600 border-none"
-                    >
-                      Add to Cart
-                    </Button>,
-                    <HeartOutlined
-                      key="wishlist"
-                      className="text-gray-400 hover:text-red-500"
-                    />,
-                    <EyeOutlined
-                      key="view"
-                      className="text-gray-400 hover:text-blue-500"
-                    />,
-                  ]}
+          {loading ? (
+            <div className="text-center text-white">
+              <p className="text-xl">Loading amazing deals...</p>
+            </div>
+          ) : bigDeals.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {bigDeals.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ scale: 0, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  className="relative"
                 >
-                  <Card.Meta
-                    title={
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold line-clamp-2">
-                          {product.name}
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                          <Rate
-                            disabled
-                            defaultValue={product.rating}
-                            className="text-sm"
-                          />
-                          <span className="text-gray-500 text-sm">
-                            ({product.reviews})
-                          </span>
-                        </div>
+                  <Card
+                    onClick={() => navigate(`/${product.id}`)}
+                    hoverable
+                    className="h-full shadow-2xl border-0 overflow-hidden bg-white"
+                    cover={
+                      <div className="relative overflow-hidden">
+                        <img
+                          alt={product.name}
+                          src={product.image}
+                          className="w-full h-48 object-cover transition-transform duration-500 hover:scale-110"
+                          onError={(e) => {
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop";
+                          }}
+                        />
+                        <Badge.Ribbon
+                          text={`-${product.discount}%`}
+                          color="red"
+                          className="text-sm font-bold"
+                        />
+                        <Tag
+                          color="volcano"
+                          className="absolute top-2 left-2 font-bold"
+                        >
+                          {product.badge}
+                        </Tag>
+                        {product.brand && (
+                          <Tag
+                            color="blue"
+                            className="absolute bottom-2 left-2 font-medium"
+                          >
+                            {product.brand}
+                          </Tag>
+                        )}
                       </div>
                     }
-                    description={
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-2xl font-bold text-red-600">
-                            ${product.salePrice}
-                          </span>
-                          <span className="text-lg text-gray-400 line-through">
-                            ${product.originalPrice}
-                          </span>
+                    actions={[
+                      <Button
+                        key="cart"
+                        type="primary"
+                        icon={<ShoppingCartOutlined />}
+                        className="bg-red-500 hover:bg-red-600 border-none"
+                      >
+                        Add to Cart
+                      </Button>,
+                      <HeartOutlined
+                        key="wishlist"
+                        className="text-gray-400 hover:text-red-500 text-lg"
+                      />,
+                      <EyeOutlined
+                        key="view"
+                        className="text-gray-400 hover:text-blue-500 text-lg"
+                      />,
+                    ]}
+                  >
+                    <Card.Meta
+                      title={
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold line-clamp-2 min-h-[3.5rem]">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            <Rate
+                              disabled
+                              defaultValue={product.rating}
+                              className="text-sm"
+                              allowHalf
+                            />
+                            <span className="text-gray-500 text-sm">
+                              ({product.reviews} reviews)
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-green-600 font-semibold">
-                          Save ${product.originalPrice - product.salePrice}
+                      }
+                      description={
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-2xl font-bold text-red-600">
+                              {formatPrice(product.salePrice)}
+                            </span>
+                            <span className="text-lg text-gray-400 line-through">
+                              {formatPrice(product.originalPrice)}
+                            </span>
+                          </div>
+                          <div className="text-green-600 font-semibold">
+                            Save{" "}
+                            {formatPrice(
+                              product.originalPrice - product.salePrice
+                            )}
+                          </div>
+                          {product.category && (
+                            <Tag color="geekblue" className="mt-2">
+                              {product.category}
+                            </Tag>
+                          )}
                         </div>
-                      </div>
-                    }
-                  />
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                      }
+                    />
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-white">
+              <p className="text-xl">No deals available at the moment</p>
+            </div>
+          )}
         </div>
       </motion.section>
 
@@ -420,109 +391,160 @@ function Home() {
             </p>
           </motion.div>
 
-          <div className="relative overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentHotIndex}
-                initial={{ x: 300, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -300, opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              >
-                {hotProducts
-                  .slice(currentHotIndex * 3, (currentHotIndex + 1) * 3)
-                  .map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                      whileHover={{ scale: 1.03, y: -5 }}
-                    >
-                      <Card
-                        hoverable
-                        className="h-full shadow-lg hover:shadow-xl transition-all duration-300"
-                        cover={
-                          <div className="relative overflow-hidden">
-                            <img
-                              alt={product.name}
-                              src={product.image}
-                              className="w-full h-48 object-cover transition-transform duration-500 hover:scale-110"
-                            />
-                            <div className="absolute top-2 right-2">
-                              <Tag color="blue">{product.category}</Tag>
-                            </div>
-                          </div>
-                        }
-                        actions={[
-                          <Button
-                            key="cart"
-                            type="primary"
-                            icon={<ShoppingCartOutlined />}
-                            className="bg-gradient-to-r from-red-500 to-red-600 border-none"
-                          >
-                            Add to Cart
-                          </Button>,
-                          <HeartOutlined
-                            key="wishlist"
-                            className="text-gray-400 hover:text-red-500"
-                          />,
-                          <EyeOutlined
-                            key="view"
-                            className="text-gray-400 hover:text-blue-500"
-                          />,
-                        ]}
+          {loading ? (
+            <div className="text-center">
+              <p className="text-xl text-gray-600">Loading hot products...</p>
+            </div>
+          ) : hotProducts.length > 0 ? (
+            <div className="relative overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentHotIndex}
+                  initial={{ x: 300, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -300, opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                  {hotProducts
+                    .slice(currentHotIndex * 3, (currentHotIndex + 1) * 3)
+                    .map((product, index) => (
+                      <motion.div
+                        key={product._id}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.03, y: -5 }}
                       >
-                        <Card.Meta
-                          title={
-                            <div className="space-y-2">
-                              <h3 className="text-lg font-semibold line-clamp-2">
-                                {product.name}
-                              </h3>
-                              <div className="flex items-center space-x-2">
-                                <Rate
-                                  disabled
-                                  defaultValue={product.rating}
-                                  className="text-sm"
+                        <Card
+                          hoverable
+                          className="h-full shadow-lg hover:shadow-xl transition-all duration-300"
+                          cover={
+                            <div className="relative overflow-hidden">
+                              <img
+                                alt={product.name}
+                                src={product.image}
+                                className="w-full h-48 object-cover transition-transform duration-500 hover:scale-110"
+                                onError={(e) => {
+                                  e.target.src =
+                                    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop";
+                                }}
+                              />
+                              <div className="absolute top-2 right-2">
+                                <Tag color="blue">
+                                  {product.category?.cateName || "Electronics"}
+                                </Tag>
+                              </div>
+                              {product.sale > 0 && (
+                                <Badge.Ribbon
+                                  text={`-${product.sale}%`}
+                                  color="volcano"
+                                  className="text-sm font-bold"
                                 />
-                                <span className="text-gray-500 text-sm">
-                                  ({product.reviews})
-                                </span>
-                              </div>
+                              )}
+                              {product.brand && (
+                                <Tag
+                                  color="purple"
+                                  className="absolute bottom-2 left-2 font-medium"
+                                >
+                                  {product.brand.brandName}
+                                </Tag>
+                              )}
                             </div>
                           }
-                          description={
-                            <div className="space-y-2">
-                              <div className="text-2xl font-bold text-gray-900">
-                                ${product.price}
+                          actions={[
+                            <Button
+                              key="cart"
+                              type="primary"
+                              icon={<ShoppingCartOutlined />}
+                              className="bg-gradient-to-r from-red-500 to-red-600 border-none"
+                            >
+                              Add to Cart
+                            </Button>,
+                            <HeartOutlined
+                              key="wishlist"
+                              className="text-gray-400 hover:text-red-500 text-lg"
+                            />,
+                            <EyeOutlined
+                              key="view"
+                              className="text-gray-400 hover:text-blue-500 text-lg"
+                            />,
+                          ]}
+                        >
+                          <Card.Meta
+                            title={
+                              <div className="space-y-2">
+                                <h3 className="text-lg font-semibold line-clamp-2 min-h-[3.5rem]">
+                                  {product.name}
+                                </h3>
+                                <div className="flex items-center space-x-2">
+                                  <Rate
+                                    disabled
+                                    defaultValue={product.rating}
+                                    className="text-sm"
+                                    allowHalf
+                                  />
+                                  <span className="text-gray-500 text-sm">
+                                    (
+                                    {product.review ? product.review.length : 0}{" "}
+                                    reviews)
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          }
-                        />
-                      </Card>
-                    </motion.div>
-                  ))}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+                            }
+                            description={
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-2xl font-bold text-gray-900">
+                                    {formatPrice(product.price)}
+                                  </span>
+                                  {product.sale > 0 && (
+                                    <span className="text-lg text-gray-400 line-through">
+                                      {formatPrice(
+                                        Math.round(
+                                          product.price /
+                                            (1 - product.sale / 100)
+                                        )
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-gray-600 text-sm line-clamp-2">
+                                  {product.description}
+                                </p>
+                              </div>
+                            }
+                          />
+                        </Card>
+                      </motion.div>
+                    ))}
+                </motion.div>
+              </AnimatePresence>
 
-          {/* Pagination dots */}
-          <div className="flex justify-center mt-8 space-x-2">
-            {Array.from({ length: Math.ceil(hotProducts.length / 3) }).map(
-              (_, index) => (
-                <motion.button
-                  key={index}
-                  onClick={() => setCurrentHotIndex(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    currentHotIndex === index ? "bg-red-500" : "bg-gray-300"
-                  }`}
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.8 }}
-                />
-              )
-            )}
-          </div>
+              {/* Pagination dots */}
+              {hotProducts.length > 3 && (
+                <div className="flex justify-center mt-8 space-x-2">
+                  {Array.from({
+                    length: Math.ceil(hotProducts.length / 3),
+                  }).map((_, index) => (
+                    <motion.button
+                      key={index}
+                      onClick={() => setCurrentHotIndex(index)}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        currentHotIndex === index ? "bg-red-500" : "bg-gray-300"
+                      }`}
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.8 }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-xl text-gray-600">No hot products available</p>
+            </div>
+          )}
         </div>
       </motion.section>
     </motion.div>

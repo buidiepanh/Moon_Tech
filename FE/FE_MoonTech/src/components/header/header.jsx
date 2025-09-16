@@ -1,16 +1,42 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button, Avatar, Dropdown } from "antd";
 import {
   UserOutlined,
   MenuOutlined,
   ShoppingCartOutlined,
+  LogoutOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router";
+import { getAuthenticatedUser } from "../../services/apiServices";
+import toast from "react-hot-toast";
 
 function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const token = sessionStorage.getItem("token");
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetchAuthenticatedUser();
+  }, [token]);
+
+  const fetchAuthenticatedUser = async () => {
+    try {
+      const res = await getAuthenticatedUser();
+      setUser(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleLogout = () => {
+    toast.success("Logout success!");
+    sessionStorage.removeItem("token");
+    setUser(null);
+    navigate("/login");
+  };
 
   const navItems = [
     { key: "home", label: "Home", href: "#" },
@@ -19,7 +45,27 @@ function Header() {
     { key: "about", label: "About Us", href: "#" },
   ];
 
-  const authMenuItems = [
+  // Menu items for authenticated users
+  const authenticatedMenuItems = [
+    {
+      key: "1",
+      label: "My Profile",
+      icon: <UserOutlined />,
+      onClick: () => navigate("/profile"),
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "2",
+      label: "Sign Out",
+      icon: <LogoutOutlined />,
+      onClick: handleLogout,
+      danger: true,
+    },
+  ];
+
+  const guestMenuItems = [
     {
       key: "1",
       label: "Sign In",
@@ -117,26 +163,68 @@ function Header() {
               </span>
             </motion.div>
 
-            {/* Authentication Dropdown */}
-            <Dropdown
-              menu={{ items: authMenuItems }}
-              placement="bottomRight"
-              arrow
-              trigger={["click"]}
-            >
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  type="primary"
-                  className="bg-gradient-to-r from-red-500 to-red-600 border-none hover:from-red-600 hover:to-red-700 shadow-lg"
-                  icon={<UserOutlined />}
+            {/* User Welcome & Authentication */}
+            {user ? (
+              // Authenticated User Section
+              <div className="flex items-center space-x-3">
+                {/* Welcome Message */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="hidden sm:block"
                 >
-                  <span className="hidden sm:inline ml-1">Account</span>
-                </Button>
-              </motion.div>
-            </Dropdown>
+                  <span className="text-gray-600 text-sm">Welcome back,</span>
+                  <span className="ml-1 font-semibold text-red-600">
+                    {user.username}
+                  </span>
+                </motion.div>
+
+                {/* User Avatar Dropdown */}
+                <Dropdown
+                  menu={{ items: authenticatedMenuItems }}
+                  placement="bottomRight"
+                  arrow
+                  trigger={["click"]}
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="cursor-pointer"
+                  >
+                    <Avatar
+                      size="large"
+                      icon={<UserOutlined />}
+                      className="bg-gradient-to-r from-red-500 to-red-600 shadow-lg border-2 border-white"
+                      style={{
+                        background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                      }}
+                    />
+                  </motion.div>
+                </Dropdown>
+              </div>
+            ) : (
+              // Guest User Section
+              <Dropdown
+                menu={{ items: guestMenuItems }}
+                placement="bottomRight"
+                arrow
+                trigger={["click"]}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    type="primary"
+                    className="bg-gradient-to-r from-red-500 to-red-600 border-none hover:from-red-600 hover:to-red-700 shadow-lg"
+                    icon={<UserOutlined />}
+                  >
+                    <span className="hidden sm:inline ml-1">Account</span>
+                  </Button>
+                </motion.div>
+              </Dropdown>
+            )}
 
             {/* Mobile Menu Toggle */}
             <motion.div whileTap={{ scale: 0.9 }} className="lg:hidden">
@@ -161,6 +249,23 @@ function Header() {
           className="lg:hidden overflow-hidden border-t border-gray-200"
         >
           <nav className="py-4 space-y-2">
+            {/* Mobile Welcome Message for authenticated users */}
+            {user && (
+              <motion.div
+                initial={{ x: -50, opacity: 0 }}
+                animate={{
+                  x: isMenuOpen ? 0 : -50,
+                  opacity: isMenuOpen ? 1 : 0,
+                }}
+                className="px-4 py-2 bg-red-50 rounded-lg mb-3"
+              >
+                <span className="text-gray-600 text-sm">Welcome back,</span>
+                <span className="ml-1 font-semibold text-red-600">
+                  {user.username}
+                </span>
+              </motion.div>
+            )}
+
             {navItems.map((item, index) => (
               <motion.a
                 key={item.key}
