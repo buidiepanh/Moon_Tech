@@ -24,8 +24,9 @@ import {
   SendOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
-import { useParams } from "react-router";
-import { getAllProducts } from "../../../services/apiServices";
+import { useNavigate, useParams } from "react-router";
+import { addToCart, getAllProducts } from "../../../services/apiServices";
+import toast from "react-hot-toast";
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -37,6 +38,7 @@ function Details() {
   const [quantity, setQuantity] = useState(1);
   const [form] = Form.useForm();
   const [userRating, setUserRating] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProductInfo();
@@ -55,6 +57,25 @@ function Details() {
       message.error("Failed to load product details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      const payload = {
+        product: productId,
+        quantity: quantity,
+      };
+      const res = await addToCart(payload);
+
+      if (!res) {
+        toast.error("Add product to cart failed!");
+      } else {
+        toast.success("Add product to cart success!");
+        navigate("/cart");
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -160,7 +181,7 @@ function Details() {
                     className="w-full h-96 lg:h-[500px] object-cover"
                     onError={(e) => {
                       e.target.src =
-                        "https://via.placeholder.com/500x500?text=No+Image";
+                        "https://placehold.co/500x500?text=No+Image";
                     }}
                   />
                 </Badge.Ribbon>
@@ -171,8 +192,7 @@ function Details() {
                   alt={product.name}
                   className="w-full h-96 lg:h-[500px] object-cover"
                   onError={(e) => {
-                    e.target.src =
-                      "https://via.placeholder.com/500x500?text=No+Image";
+                    e.target.src = "https://placehold.co/500x500?text=No+Image";
                   }}
                 />
               )}
@@ -274,6 +294,7 @@ function Details() {
                     type="primary"
                     size="large"
                     icon={<ShoppingCartOutlined />}
+                    onClick={() => handleAddToCart()}
                     className="bg-red-600 hover:bg-red-700 border-red-600 h-12 px-8 text-lg font-semibold w-full sm:w-auto"
                   >
                     Add to Cart

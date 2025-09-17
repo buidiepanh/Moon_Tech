@@ -35,3 +35,39 @@ export const getAllProducts = async () => {
     console.log(error);
   }
 };
+
+export const getUserCart = async () => {
+  try {
+    const res = await axios.get("/carts");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const addToCart = async (payload) => {
+  try {
+    const res = await axios.post("/carts", payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const updateItemQuantity = async (itemId, payload) => {
+  try {
+    const res = await axios.put(`/carts/${itemId}`, payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const deleteItemFromCart = async (itemId) => {
+  try {
+    const res = await axios.delete(`/carts/${itemId}`);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};

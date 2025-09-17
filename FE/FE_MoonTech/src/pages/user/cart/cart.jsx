@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   Button,
@@ -28,51 +28,30 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
+import {
+  deleteItemFromCart,
+  getUserCart,
+  updateItemQuantity,
+} from "../../../services/apiServices";
+import toast from "react-hot-toast";
 
 const { Title, Text } = Typography;
 
-// Mock cart data
-const initialCartData = [
-  {
-    id: 1,
-    name: "Premium Wireless Headphones Pro",
-    category: "Electronics",
-    price: 299.99,
-    originalPrice: 399.99,
-    image:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
-    quantity: 2,
-    sale: 25,
-    inStock: true,
-  },
-  {
-    id: 2,
-    name: "Gaming Mechanical Keyboard",
-    category: "Gaming",
-    price: 159.99,
-    originalPrice: null,
-    image:
-      "https://images.unsplash.com/photo-1541140532154-b024d705b90a?w=300&h=300&fit=crop",
-    quantity: 1,
-    sale: 0,
-    inStock: true,
-  },
-  {
-    id: 3,
-    name: "Ultra HD Webcam 4K",
-    category: "Electronics",
-    price: 89.99,
-    originalPrice: 119.99,
-    image:
-      "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=300&h=300&fit=crop",
-    quantity: 3,
-    sale: 25,
-    inStock: false,
-  },
-];
-
 function Cart() {
-  const [cartItems, setCartItems] = useState(initialCartData);
+  const [cartItems, setCartItems] = useState([]);
+
+  useEffect(() => {
+    fetchUserCart();
+  }, []);
+
+  const fetchUserCart = async () => {
+    try {
+      const res = await getUserCart();
+      setCartItems(res?.cartItem);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -92,46 +71,58 @@ function Cart() {
     exit: { opacity: 0, x: 20, transition: { duration: 0.3 } },
   };
 
-  const updateQuantity = (id, newQuantity) => {
-    if (newQuantity < 1) return;
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  const updateQuantity = async (id, newQuantity) => {
+    try {
+      console.log("HAHA", newQuantity);
+      if (newQuantity < 1) return;
+      const payload = {
+        quantity: newQuantity,
+      };
+
+      const res = await updateItemQuantity(id, payload);
+
+      if (!res) {
+        toast.error("Cannot update item's quantity!");
+      } else {
+        toast.success("Update item's quantity success!");
+        fetchUserCart();
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const removeItem = (id) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
-    message.success("Item removed from cart");
-  };
+  const handleDeleteItem = async (id) => {
+    try {
+      const res = await deleteItemFromCart(id);
 
-  const moveToWishlist = (id) => {
-    removeItem(id);
-    message.success("Item moved to wishlist");
+      if (!res) {
+        toast.error("Remove item failed!");
+      } else {
+        toast.success("Remove item success!");
+        fetchUserCart();
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const calculateSubtotal = () => {
     return cartItems.reduce(
-      (total, item) => total + item.price * item.quantity,
+      (total, item) => total + item.product.price * item.quantity,
       0
     );
   };
 
-  const calculateSavings = () => {
-    return cartItems.reduce((total, item) => {
-      if (item.originalPrice) {
-        return total + (item.originalPrice - item.price) * item.quantity;
-      }
-      return total;
-    }, 0);
-  };
-
   const subtotal = calculateSubtotal();
-  const savings = calculateSavings();
-  const shipping = subtotal > 100 ? 0 : 9.99;
-  const tax = subtotal * 0.08;
+  const shipping = subtotal > 10000000 ? 0 : 50000; // Free shipping over 10M VND
+  const tax = subtotal * 0.1; // 10% VAT
   const total = subtotal + shipping + tax;
+
+  // Format VND currency
+  const formatVND = (amount) => {
+    return new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
+  };
 
   if (cartItems.length === 0) {
     return (
@@ -150,7 +141,7 @@ function Cart() {
                     Your Cart is Empty
                   </Title>
                   <Text className="text-gray-500">
-                    Looks like you haven't added any items to your cart yet.
+                    You haven't added any items to your cart yet.
                   </Text>
                 </div>
               }
@@ -222,14 +213,10 @@ function Cart() {
                 <div className="space-y-6">
                   {cartItems.map((item, index) => (
                     <motion.div
-                      key={item.id}
+                      key={item._id}
                       variants={itemVariants}
                       transition={{ delay: index * 0.1 }}
-                      className={`p-6 rounded-xl border transition-all duration-300 hover:shadow-md ${
-                        item.inStock
-                          ? "bg-white border-gray-200 hover:border-red-300"
-                          : "bg-gray-50 border-gray-300"
-                      }`}
+                      className="p-6 rounded-xl border transition-all duration-300 hover:shadow-md bg-white border-gray-200 hover:border-red-300"
                     >
                       <div className="flex gap-6">
                         {/* Product Image */}
@@ -238,24 +225,9 @@ function Cart() {
                           className="flex-shrink-0"
                         >
                           <div className="relative">
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-24 h-24 object-cover rounded-lg"
-                            />
-                            {item.sale > 0 && (
-                              <Badge
-                                count={`${item.sale}%`}
-                                className="absolute -top-2 -right-2 bg-red-500"
-                              />
-                            )}
-                            {!item.inStock && (
-                              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
-                                <Text className="text-white text-xs font-semibold">
-                                  Out of Stock
-                                </Text>
-                              </div>
-                            )}
+                            <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
+                              <ShoppingCartOutlined className="text-2xl text-gray-400" />
+                            </div>
                           </div>
                         </motion.div>
 
@@ -263,44 +235,27 @@ function Cart() {
                         <div className="flex-1">
                           <div className="flex justify-between items-start mb-3">
                             <div>
-                              <Tag color="red" className="mb-2">
-                                {item.category}
-                              </Tag>
                               <Title
                                 level={4}
-                                className={`m-0 ${
-                                  !item.inStock
-                                    ? "text-gray-500"
-                                    : "text-gray-900"
-                                }`}
+                                className="m-0 text-gray-900 mb-2"
                               >
-                                {item.name}
+                                {item.product.name}
                               </Title>
-                              {!item.inStock && (
-                                <Text type="danger" className="text-sm">
-                                  Currently unavailable
-                                </Text>
-                              )}
+                              <Text type="secondary" className="text-sm">
+                                ID: {item.product._id}
+                              </Text>
                             </div>
 
                             {/* Actions */}
                             <Space>
-                              <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                              >
-                                <Button
-                                  type="text"
-                                  icon={<HeartOutlined />}
-                                  className="text-gray-400 hover:text-red-500"
-                                  onClick={() => moveToWishlist(item.id)}
-                                />
-                              </motion.div>
                               <Popconfirm
                                 title="Remove from cart?"
                                 description="Are you sure you want to remove this item?"
-                                onConfirm={() => removeItem(item.id)}
+                                onConfirm={() =>
+                                  handleDeleteItem(item.product._id)
+                                }
                                 okText="Remove"
+                                cancelText="Cancel"
                                 okButtonProps={{
                                   className:
                                     "bg-red-600 hover:bg-red-700 border-red-600",
@@ -324,30 +279,14 @@ function Cart() {
                           {/* Price and Quantity */}
                           <div className="flex justify-between items-end">
                             <div>
-                              <Space align="baseline">
+                              <Space direction="vertical" size={0}>
                                 <Text className="text-2xl font-bold text-red-600">
-                                  ${item.price.toFixed(2)}
+                                  {formatVND(item.product.price)}
                                 </Text>
-                                {item.originalPrice && (
-                                  <Text
-                                    delete
-                                    className="text-gray-400 text-lg"
-                                  >
-                                    ${item.originalPrice.toFixed(2)}
-                                  </Text>
-                                )}
+                                <Text className="text-sm text-gray-600">
+                                  Unit Price
+                                </Text>
                               </Space>
-                              {item.originalPrice && (
-                                <div className="mt-1">
-                                  <Text className="text-sm text-green-600 font-medium">
-                                    You save $
-                                    {(
-                                      (item.originalPrice - item.price) *
-                                      item.quantity
-                                    ).toFixed(2)}
-                                  </Text>
-                                </div>
-                              )}
                             </div>
 
                             {/* Quantity Controls */}
@@ -360,9 +299,12 @@ function Cart() {
                                   size="small"
                                   icon={<MinusOutlined />}
                                   onClick={() =>
-                                    updateQuantity(item.id, item.quantity - 1)
+                                    updateQuantity(
+                                      item.product._id,
+                                      item.quantity - 1
+                                    )
                                   }
-                                  disabled={item.quantity <= 1 || !item.inStock}
+                                  disabled={item.quantity <= 1}
                                   className="flex items-center justify-center w-8 h-8"
                                 />
                               </motion.div>
@@ -372,11 +314,10 @@ function Cart() {
                                 max={99}
                                 value={item.quantity}
                                 onChange={(value) =>
-                                  updateQuantity(item.id, value)
+                                  updateQuantity(item.product._id, value)
                                 }
                                 className="w-16 text-center"
                                 size="small"
-                                disabled={!item.inStock}
                               />
 
                               <motion.div
@@ -387,12 +328,24 @@ function Cart() {
                                   size="small"
                                   icon={<PlusOutlined />}
                                   onClick={() =>
-                                    updateQuantity(item.id, item.quantity + 1)
+                                    updateQuantity(
+                                      item.product._id,
+                                      item.quantity + 1
+                                    )
                                   }
-                                  disabled={!item.inStock}
                                   className="flex items-center justify-center w-8 h-8"
                                 />
                               </motion.div>
+                            </div>
+                          </div>
+
+                          {/* Subtotal for this item */}
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="flex justify-between items-center">
+                              <Text className="text-gray-600">Subtotal:</Text>
+                              <Text className="text-lg font-semibold text-red-600">
+                                {formatVND(item.product.price * item.quantity)}
+                              </Text>
                             </div>
                           </div>
                         </div>
@@ -418,19 +371,8 @@ function Cart() {
                     <Text className="text-gray-600">
                       Subtotal ({cartItems.length} items)
                     </Text>
-                    <Text className="font-semibold">
-                      ${subtotal.toFixed(2)}
-                    </Text>
+                    <Text className="font-semibold">{formatVND(subtotal)}</Text>
                   </div>
-
-                  {savings > 0 && (
-                    <div className="flex justify-between">
-                      <Text className="text-green-600">Total Savings</Text>
-                      <Text className="font-semibold text-green-600">
-                        -${savings.toFixed(2)}
-                      </Text>
-                    </div>
-                  )}
 
                   <div className="flex justify-between">
                     <Text className="text-gray-600">Shipping</Text>
@@ -439,13 +381,13 @@ function Cart() {
                         shipping === 0 ? "text-green-600" : ""
                       }`}
                     >
-                      {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                      {shipping === 0 ? "FREE" : formatVND(shipping)}
                     </Text>
                   </div>
 
                   <div className="flex justify-between">
-                    <Text className="text-gray-600">Tax</Text>
-                    <Text className="font-semibold">${tax.toFixed(2)}</Text>
+                    <Text className="text-gray-600">VAT (10%)</Text>
+                    <Text className="font-semibold">{formatVND(tax)}</Text>
                   </div>
 
                   <Divider className="my-4" />
@@ -455,7 +397,7 @@ function Cart() {
                       Total
                     </Title>
                     <Title level={4} className="text-red-600 m-0">
-                      ${total.toFixed(2)}
+                      {formatVND(total)}
                     </Title>
                   </div>
                 </div>
@@ -465,7 +407,7 @@ function Cart() {
                   <div className="bg-red-50 p-4 rounded-lg mb-6 border border-red-200">
                     <Text className="text-red-700 text-sm">
                       <GiftOutlined className="mr-2" />
-                      Add ${(100 - subtotal).toFixed(2)} more to get FREE
+                      Add {formatVND(10000000 - subtotal)} more to get FREE
                       shipping!
                     </Text>
                   </div>
@@ -482,7 +424,6 @@ function Cart() {
                     block
                     icon={<FileTextOutlined />}
                     className="bg-red-600 hover:bg-red-700 border-red-600 h-14 text-lg font-semibold mb-4"
-                    disabled={cartItems.some((item) => !item.inStock)}
                   >
                     Create Order
                   </Button>

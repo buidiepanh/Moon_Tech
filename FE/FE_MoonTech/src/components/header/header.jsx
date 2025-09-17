@@ -9,7 +9,7 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router";
-import { getAuthenticatedUser } from "../../services/apiServices";
+import { getAuthenticatedUser, getUserCart } from "../../services/apiServices";
 import toast from "react-hot-toast";
 
 function Header() {
@@ -17,10 +17,21 @@ function Header() {
   const navigate = useNavigate();
   const token = sessionStorage.getItem("token");
   const [user, setUser] = useState(null);
+  const [number, setNumber] = useState(0);
 
   useEffect(() => {
     fetchAuthenticatedUser();
+    fetchNumberOfItem();
   }, [token]);
+
+  const fetchNumberOfItem = async () => {
+    try {
+      const res = await getUserCart();
+      setNumber(res.cartItem.length);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const fetchAuthenticatedUser = async () => {
     try {
@@ -36,6 +47,15 @@ function Header() {
     sessionStorage.removeItem("token");
     setUser(null);
     navigate("/login");
+  };
+
+  const handleCartClick = () => {
+    if (!token) {
+      toast.error("Please login to view your cart!");
+      navigate("/login");
+    } else {
+      navigate("/cart");
+    }
   };
 
   const navItems = [
@@ -157,9 +177,12 @@ function Header() {
               whileTap={{ scale: 0.9 }}
               className="relative cursor-pointer"
             >
-              <ShoppingCartOutlined className="text-xl text-gray-600 hover:text-red-600 transition-colors" />
+              <ShoppingCartOutlined
+                className="text-xl text-gray-600 hover:text-red-600 transition-colors"
+                onClick={() => handleCartClick()}
+              />
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                0
+                {number}
               </span>
             </motion.div>
 
