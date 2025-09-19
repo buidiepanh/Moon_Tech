@@ -2,6 +2,8 @@ const Products = require("../models/product");
 const Categories = require("../models/category");
 const Carts = require("../models/cart");
 const Brands = require("../models/brand");
+const Users = require("../models/user");
+const Orders = require("../models/order");
 
 //==================Product API================
 const getAllProducts = async (req, res, next) => {
@@ -164,7 +166,7 @@ const deleteCategory = async (req, res, next) => {
 //==================Cart API=====================
 const getUserCartItem = async (req, res, next) => {
   try {
-    const result = await Carts.find({ user: req.user._id }).populate(
+    const result = await Carts.findOne({ user: req.user._id }).populate(
       "cartItem.product",
       "name price"
     );
@@ -181,7 +183,7 @@ const getUserCartItem = async (req, res, next) => {
 
 const addNewCart = async (req, res, next) => {
   try {
-    const { product, quantity } = req.body.cartItem;
+    const { product, quantity } = req.body;
     let cart = await Carts.findOne({ user: req.user._id });
 
     if (!cart) {
@@ -216,7 +218,7 @@ const addNewCart = async (req, res, next) => {
 
 const updateCartItem = async (req, res, next) => {
   try {
-    const { quantity } = req.body.cartItem;
+    const { quantity } = req.body;
     const cart = await Carts.findOne({ user: req.user._id });
     if (!cart) {
       return res.status(404).json("Cart not found!");
@@ -350,6 +352,129 @@ const deleteBrand = async (req, res, next) => {
   }
 };
 
+//====================User API=====================
+const getAllUsers = async (req, res, next) => {
+  try {
+    if (req.user.admin) {
+      const result = await Users.find({});
+
+      if (!result) {
+        res.status(404).json("No user found!");
+        return null;
+      }
+      return res.status(200).json(result);
+    } else {
+      return res.status(401).json("You don't have permisson to do this!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAuthenticatedUser = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const user = await Users.findById(userId).select("-password");
+
+    if (!user) {
+      res.status(404).json("User not found!");
+      return null;
+    }
+    return res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateUser = async (req, res, next) => {
+  try {
+    const result = await Users.findByIdAndUpdate(
+      req.params.userId,
+      { $set: req.body },
+      { new: true }
+    );
+
+    if (!result) {
+      res.status(400).json("Cannot update user's information!");
+      return null;
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteUser = async (req, res, next) => {
+  try {
+    if (req.user.admin) {
+      const result = await Users.findByIdAndDelete(req.params.userId);
+
+      if (!result) {
+        res.status(400).json("Cannot delete this user!");
+        return null;
+      }
+      return res.status(200).json("Delete user success!");
+    } else {
+      return res.status(401).json("You don't have permisson to do this!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+//====================Order API=======================
+const getAllUserOrders = async (req, res, next) => {
+  try {
+    const orders = await Orders.find({ user: req.user._id });
+
+    if (!orders) {
+      res.status(400).json("No orders found!");
+      return null;
+    }
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addNewOrder = async (req, res, next) => {
+  try {
+    const result = await Orders.create(req.body);
+
+    if (!result) {
+      res.status(400).json("Cannot add order!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateOrderStatus = async (req, res, next) => {
+  try {
+    const result = await Orders.findByIdAndUpdate(
+      req.params.orderId,
+      {
+        $set: req.body,
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!result) {
+      res.status(400).json("Cannot update order status!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllProducts,
   addNewProduct,
@@ -370,4 +495,13 @@ module.exports = {
   addNewBrand,
   updateBrand,
   deleteBrand,
+
+  getAllUsers,
+  getAuthenticatedUser,
+  updateUser,
+  deleteUser,
+
+  getAllUserOrders,
+  addNewOrder,
+  updateOrderStatus,
 };

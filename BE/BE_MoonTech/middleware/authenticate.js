@@ -2,7 +2,13 @@ require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
 const authenticate = (req, res, next) => {
-  const allowList = ["/login", "/register", "/products"];
+  const allowList = [
+    "/login",
+    "/register",
+    "/products",
+    "/brands",
+    "/categories",
+  ];
 
   if (allowList.find((item) => item === req.originalUrl.startsWith(item))) {
     next();

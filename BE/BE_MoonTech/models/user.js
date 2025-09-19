@@ -24,6 +24,11 @@ var userSchema = new Schema(
         message: "Invalid phone number format",
       },
     },
+    male: {
+      type: String,
+      enum: ["Male, Female, Other"],
+      required: true,
+    },
     avatar: {
       type: String,
     },
@@ -31,6 +36,22 @@ var userSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    shippingAddress: [
+      {
+        address: {
+          type: String,
+        },
+        city: {
+          type: String,
+          enum: ["HoChiMinh", "CanTho", "QuyNhon", "HaNoi", "DaNang"],
+          default: "HoChiMinh",
+        },
+        isDefault: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

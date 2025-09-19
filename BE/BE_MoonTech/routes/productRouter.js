@@ -10,9 +10,11 @@ const authenticate = require("../middleware/authenticate");
 
 const productRouter = express.Router();
 productRouter.use(bodyparser.json());
-productRouter.use(authenticate);
 
-productRouter.route("/").get(getAllProducts).post(addNewProduct);
-productRouter.route("/:productId").put(updateProduct).delete(deleteProduct);
+productRouter.route("/").get(getAllProducts).post(authenticate, addNewProduct);
+productRouter
+  .route("/:productId")
+  .put(authenticate, updateProduct)
+  .delete(authenticate, deleteProduct);
 
 module.exports = productRouter;

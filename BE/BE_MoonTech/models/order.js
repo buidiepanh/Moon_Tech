@@ -22,17 +22,19 @@ var orderSchema = new Schema(
       required: true,
       min: 1,
     },
-    shippingAddress: {
-      address: {
-        type: String,
-        required: true,
+    shippingAddress: [
+      {
+        address: {
+          type: String,
+          required: true,
+        },
+        city: {
+          type: String,
+          enum: ["HoChiMinh", "CanTho", "QuyNhon", "HaNoi", "DaNang"],
+          default: "HoChiMinh",
+        },
       },
-      city: {
-        type: String,
-        enum: ["HoChiMinh", "CanTho", "QuyNhon", "HaNoi", "DaNang"],
-        default: "HoChiMinh",
-      },
-    },
+    ],
   },
   { timestamps: true }
 );
