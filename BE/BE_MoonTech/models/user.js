@@ -15,17 +15,43 @@ var userSchema = new Schema(
       required: true,
     },
     phone: {
-      type: Number,
+      type: String,
+      required: true,
+      validate: {
+        validator: function (v) {
+          return /^(\+84|84|0)[35789]\d{8}$/.test(v);
+        },
+        message: "Invalid phone number format",
+      },
+    },
+    male: {
+      type: String,
+      enum: ["Male, Female, Other"],
       required: true,
     },
     avatar: {
       type: String,
-      required: true,
     },
     admin: {
       type: Boolean,
       default: false,
     },
+    shippingAddress: [
+      {
+        address: {
+          type: String,
+        },
+        city: {
+          type: String,
+          enum: ["HoChiMinh", "CanTho", "QuyNhon", "HaNoi", "DaNang"],
+          default: "HoChiMinh",
+        },
+        isDefault: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

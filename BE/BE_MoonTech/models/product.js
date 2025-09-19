@@ -6,6 +6,16 @@ var productSchema = new Schema(
       type: String,
       required: true,
     },
+    category: {
+      type: Schema.Types.ObjectId,
+      ref: "Categories",
+      required: true,
+    },
+    brand: {
+      type: Schema.Types.ObjectId,
+      ref: "Brands",
+      required: true,
+    },
     description: {
       type: String,
       required: false,
@@ -31,6 +41,13 @@ var productSchema = new Schema(
       min: 0,
       max: 5,
     },
+    review: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Comments",
+        default: [],
+      },
+    ],
   },
   {
     timestamps: true,
