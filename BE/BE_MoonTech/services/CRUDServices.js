@@ -4,6 +4,7 @@ const Carts = require("../models/cart");
 const Brands = require("../models/brand");
 const Users = require("../models/user");
 const Orders = require("../models/order");
+const ShippingAddresses = require("../models/shippingAddress");
 
 //==================Product API================
 const getAllProducts = async (req, res, next) => {
@@ -475,6 +476,83 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
+//===================Shipping Address API=============
+const getAllUserAddresses = async (req, res, next) => {
+  try {
+    const result = await ShippingAddresses.find({ user: req.user._id });
+
+    if (!result) {
+      res.status(400).json("No address found!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addNewAddress = async (req, res, next) => {
+  try {
+    const userId = req.body.user;
+    const result = await ShippingAddresses.create(req.body);
+
+    if (!result) {
+      res.status(400).json("Cannot add address!");
+      return null;
+    }
+
+    await Users.findByIdAndUpdate(userId, {
+      $push: { shippingAddress: result._id },
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateUserAddress = async (req, res, next) => {
+  try {
+    const { isDefault } = req.body;
+
+    if (isDefault) {
+      await ShippingAddresses.updateMany(
+        { user: req.user._id, _id: { $ne: req.params.addressId } },
+        { $set: { isDefault: false } }
+      );
+    }
+    const result = await ShippingAddresses.findByIdAndUpdate(
+      req.params.addressId,
+      { $set: { isDefault: true } },
+      { new: true }
+    );
+
+    if (!result) {
+      res.status(400).json("Cannot update user's address!");
+      return null;
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteUserAddress = async (req, res, next) => {
+  try {
+    const response = await ShippingAddresses.findByIdAndDelete(
+      req.params.addressId
+    );
+
+    if (!response) {
+      res.status(400).json("Cannot delete address!");
+      return null;
+    }
+    return res.status(200).json("Delete address success!");
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllProducts,
   addNewProduct,
@@ -504,4 +582,9 @@ module.exports = {
   getAllUserOrders,
   addNewOrder,
   updateOrderStatus,
+
+  getAllUserAddresses,
+  addNewAddress,
+  updateUserAddress,
+  deleteUserAddress,
 };
