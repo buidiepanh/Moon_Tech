@@ -96,14 +96,6 @@ function Header() {
       label: "Sign Up",
       onClick: () => navigate("/signup"),
     },
-    {
-      type: "divider",
-    },
-    {
-      key: "3",
-      label: "My Account",
-      onClick: () => navigate("/profile"),
-    },
   ];
 
   return (
