@@ -116,3 +116,21 @@ export const deleteItemFromCart = async (itemId) => {
     console.log(error);
   }
 };
+
+export const addNewOrder = async (payload) => {
+  try {
+    const res = await axios.post("/orders", payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getAllUserOrders = async () => {
+  try {
+    const res = await axios.get("/orders");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};

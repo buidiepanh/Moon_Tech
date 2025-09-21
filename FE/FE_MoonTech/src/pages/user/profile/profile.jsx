@@ -48,8 +48,10 @@ import dayjs from "dayjs";
 import {
   addNewAddress,
   deleteAddress,
+  getAllUserOrders,
   getAuthenticatedUser,
   getUserAddresses,
+  getUserCart,
   updateDefaultAddress,
   updateUserInfo,
 } from "../../../services/apiServices";
@@ -69,40 +71,14 @@ function Profile() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [addresses, setAddresses] = useState([]);
-  const [orders, setOrders] = useState([
-    {
-      id: "ORD001",
-      date: "2024-01-15",
-      status: "delivered",
-      total: 299.99,
-      items: 3,
-      products: [
-        { name: "Wireless Headphones", quantity: 1, price: 149.99 },
-        { name: "Phone Case", quantity: 2, price: 75.0 },
-      ],
-    },
-    {
-      id: "ORD002",
-      date: "2024-01-10",
-      status: "shipping",
-      total: 89.99,
-      items: 1,
-      products: [{ name: "Bluetooth Speaker", quantity: 1, price: 89.99 }],
-    },
-    {
-      id: "ORD003",
-      date: "2024-01-05",
-      status: "processing",
-      total: 199.99,
-      items: 2,
-      products: [{ name: "Smart Watch", quantity: 1, price: 199.99 }],
-    },
-  ]);
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     fetchUserInfo();
     fetchUserAddress();
+    fetchUserOrders();
   }, []);
+  console.log(orders);
 
   const fetchUserInfo = async () => {
     try {
@@ -117,6 +93,15 @@ function Profile() {
     try {
       const res = await getUserAddresses();
       setAddresses(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchUserOrders = async () => {
+    try {
+      const res = await getAllUserOrders();
+      setOrders(res);
     } catch (error) {
       console.log(error);
     }
@@ -242,25 +227,25 @@ function Profile() {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("vi-VN", {
       style: "currency",
-      currency: "USD",
+      currency: "VND",
     }).format(amount);
   };
 
   const orderColumns = [
     {
       title: "Order ID",
-      dataIndex: "id",
-      key: "id",
+      dataIndex: "_id",
+      key: "_id",
       render: (text) => (
         <Text className="font-mono font-medium text-red-600">{text}</Text>
       ),
     },
     {
       title: "Date",
-      dataIndex: "date",
-      key: "date",
+      dataIndex: "createdAt",
+      key: "createdAt",
       render: (date) => dayjs(date).format("MMM DD, YYYY"),
     },
     {
@@ -281,12 +266,14 @@ function Profile() {
       title: "Items",
       dataIndex: "items",
       key: "items",
-      render: (items) => <Badge count={items} className="bg-red-600" />,
+      render: (items) => (
+        <Badge count={items?.cartItem?.length || 0} className="bg-red-600" />
+      ),
     },
     {
       title: "Total",
-      dataIndex: "total",
-      key: "total",
+      dataIndex: "totalPrice",
+      key: "totalPrice",
       render: (total) => (
         <Text className="font-semibold text-red-600">
           {formatCurrency(total)}
@@ -702,7 +689,7 @@ function Profile() {
           title={
             <div className="flex items-center gap-3">
               <ShoppingOutlined className="text-red-600" />
-              Order Details - {selectedOrder?.id}
+              Order Details - {selectedOrder?._id}
             </div>
           }
           open={orderDetailVisible}
@@ -712,12 +699,13 @@ function Profile() {
         >
           {selectedOrder && (
             <div className="space-y-6">
+              {/* Order Info */}
               <Descriptions column={2} bordered>
                 <Descriptions.Item label="Order ID">
-                  {selectedOrder.id}
+                  {selectedOrder._id}
                 </Descriptions.Item>
                 <Descriptions.Item label="Date">
-                  {dayjs(selectedOrder.date).format("MMMM DD, YYYY")}
+                  {dayjs(selectedOrder.createdAt).format("MMMM DD, YYYY")}
                 </Descriptions.Item>
                 <Descriptions.Item label="Status">
                   <Tag
@@ -729,53 +717,48 @@ function Profile() {
                 </Descriptions.Item>
                 <Descriptions.Item label="Total">
                   <Text className="font-semibold text-red-600 text-lg">
-                    {formatCurrency(selectedOrder.total)}
+                    {formatCurrency(selectedOrder.totalPrice)}
                   </Text>
                 </Descriptions.Item>
               </Descriptions>
 
+              {/* Items */}
               <div>
                 <Title level={5} className="text-gray-900 mb-3">
                   Order Items
                 </Title>
                 <div className="space-y-3">
-                  {selectedOrder.products?.map((product, index) => (
+                  {selectedOrder.items?.cartItem?.map((cart, index) => (
                     <div
                       key={index}
                       className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
                     >
                       <div>
-                        <Text className="font-medium">{product.name}</Text>
+                        <Text className="font-medium">
+                          {cart.product?.name}
+                        </Text>
                         <Text className="text-gray-600 block">
-                          Quantity: {product.quantity}
+                          Quantity: {cart.quantity}
                         </Text>
                       </div>
                       <Text className="font-semibold text-red-600">
-                        {formatCurrency(product.price)}
+                        {formatCurrency(cart.product?.price)}
                       </Text>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* Timeline */}
               <Timeline
                 items={[
                   {
-                    color: "green",
-                    children: "Order placed",
+                    color: selectedOrder.status === "pending" ? "red" : "green",
+                    children: "Pending Payment",
                   },
                   {
-                    color:
-                      selectedOrder.status === "processing" ? "red" : "green",
-                    children: "Processing",
-                  },
-                  {
-                    color: ["shipping", "delivered"].includes(
-                      selectedOrder.status
-                    )
-                      ? "green"
-                      : "gray",
-                    children: "Shipped",
+                    color: selectedOrder.status === "paid" ? "green" : "gray",
+                    children: "Paid",
                   },
                   {
                     color:
@@ -784,6 +767,22 @@ function Profile() {
                   },
                 ]}
               />
+
+              {/* Pay Button */}
+              {selectedOrder.status === "pending" && (
+                <div className="flex justify-end">
+                  <Button
+                    type="primary"
+                    className="bg-red-600 hover:bg-red-700 border-red-600"
+                    onClick={() => {
+                      // TODO: Call API to update order status -> paid
+                      toast.success("Redirecting to payment...");
+                    }}
+                  >
+                    Pay Now
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </Modal>
