@@ -167,10 +167,10 @@ const deleteCategory = async (req, res, next) => {
 //==================Cart API=====================
 const getUserCartItem = async (req, res, next) => {
   try {
-    const result = await Carts.findOne({ user: req.user._id }).populate(
-      "cartItem.product",
-      "name price"
-    );
+    const result = await Carts.findOne({
+      user: req.user._id,
+      status: "active",
+    }).populate("cartItem.product", "name price");
 
     if (!result) {
       res.status(400).json("User cart is empty!");
@@ -185,7 +185,7 @@ const getUserCartItem = async (req, res, next) => {
 const addNewCart = async (req, res, next) => {
   try {
     const { product, quantity } = req.body;
-    let cart = await Carts.findOne({ user: req.user._id });
+    let cart = await Carts.findOne({ user: req.user._id, status: "active" });
 
     if (!cart) {
       const result = await Carts.create({
@@ -220,7 +220,7 @@ const addNewCart = async (req, res, next) => {
 const updateCartItem = async (req, res, next) => {
   try {
     const { quantity } = req.body;
-    const cart = await Carts.findOne({ user: req.user._id });
+    const cart = await Carts.findOne({ user: req.user._id, status: "active" });
     if (!cart) {
       return res.status(404).json("Cart not found!");
     }
@@ -258,7 +258,7 @@ const deleteCartItem = async (req, res, next) => {
       return res.status(400).json("Product ID is required");
     }
 
-    const cart = await Carts.findOne({ user: req.user._id });
+    const cart = await Carts.findOne({ user: req.user._id, status: "active" });
     if (!cart) {
       return res.status(404).json("Cart not found");
     }
@@ -375,7 +375,9 @@ const getAllUsers = async (req, res, next) => {
 const getAuthenticatedUser = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const user = await Users.findById(userId).select("-password");
+    const user = await Users.findById(userId)
+      .select("-password")
+      .populate("shippingAddress", "isDefault");
 
     if (!user) {
       res.status(404).json("User not found!");
@@ -427,7 +429,14 @@ const deleteUser = async (req, res, next) => {
 //====================Order API=======================
 const getAllUserOrders = async (req, res, next) => {
   try {
-    const orders = await Orders.find({ user: req.user._id });
+    const orders = await Orders.find({ user: req.user._id }).populate({
+      path: "items",
+      select: "cartItem",
+      populate: {
+        path: "cartItem.product",
+        select: "name price",
+      },
+    });
 
     if (!orders) {
       res.status(400).json("No orders found!");
@@ -442,12 +451,15 @@ const getAllUserOrders = async (req, res, next) => {
 
 const addNewOrder = async (req, res, next) => {
   try {
+    const cartId = req.body.items;
     const result = await Orders.create(req.body);
 
     if (!result) {
       res.status(400).json("Cannot add order!");
       return null;
     }
+    await Carts.findByIdAndUpdate(cartId, { status: "deactive" });
+
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -471,6 +483,23 @@ const updateOrderStatus = async (req, res, next) => {
       return null;
     }
     return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteAllOrders = async (req, res, next) => {
+  try {
+    const result = await Orders.deleteMany({});
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json("No orders found to delete!");
+    }
+
+    return res.status(200).json({
+      message: "All orders deleted successfully!",
+      deletedCount: result.deletedCount,
+    });
   } catch (error) {
     next(error);
   }
@@ -582,6 +611,7 @@ module.exports = {
   getAllUserOrders,
   addNewOrder,
   updateOrderStatus,
+  deleteAllOrders,
 
   getAllUserAddresses,
   addNewAddress,

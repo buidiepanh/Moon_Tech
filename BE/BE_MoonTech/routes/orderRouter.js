@@ -5,13 +5,18 @@ const {
   getAllUserOrders,
   addNewOrder,
   updateOrderStatus,
+  deleteAllOrders,
 } = require("../services/CRUDServices");
 
 const orderRouter = express.Router();
 orderRouter.use(bodyParser.json());
 orderRouter.use(authenticate);
 
-orderRouter.route("/").get(getAllUserOrders).post(addNewOrder);
+orderRouter
+  .route("/")
+  .get(getAllUserOrders)
+  .post(addNewOrder)
+  .delete(deleteAllOrders);
 orderRouter.route("/:orderId").put(updateOrderStatus);
 
 module.exports = orderRouter;
