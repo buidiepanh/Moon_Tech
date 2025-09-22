@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, Input, Button, Typography } from "antd";
 import { motion } from "framer-motion";
 import { MailOutlined, LockOutlined } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import { useNavigate } from "react-router";
-import { loginFunction } from "../../../services/apiServices";
+import {
+  getAuthenticatedUser,
+  loginFunction,
+} from "../../../services/apiServices";
 import toast from "react-hot-toast";
 
 const { Title, Link } = Typography;
@@ -21,7 +24,12 @@ const Login = () => {
       if (res) {
         sessionStorage.setItem("token", res.accessToken);
         toast.success("Login success!");
-        navigate("/");
+        const user = await getAuthenticatedUser();
+        if (user.admin) {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       } else {
         toast.error("Login failed, please try again!");
       }

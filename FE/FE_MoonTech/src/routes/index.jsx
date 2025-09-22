@@ -7,6 +7,7 @@ import Register from "../pages/authen/register/register";
 import Details from "../pages/user/product-details/details";
 import Cart from "../pages/user/cart/cart";
 import Profile from "../pages/user/profile/profile";
+import Admin from "../pages/authen/admin/admin";
 
 function UserRouter() {
   return (
@@ -25,11 +26,22 @@ function UserRouter() {
   );
 }
 
+function AdminRouter() {
+  return (
+    <>
+      <Routes>
+        <Route path="" element={<Admin />} />
+      </Routes>
+    </>
+  );
+}
+
 export function AppRouter() {
   return (
     <>
       <Routes>
         <Route path="/*" element={<UserRouter />} />
+        <Route path="/admin" element={<AdminRouter />} />
       </Routes>
     </>
   );

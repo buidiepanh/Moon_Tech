@@ -51,7 +51,6 @@ import {
   getAllUserOrders,
   getAuthenticatedUser,
   getUserAddresses,
-  getUserCart,
   updateDefaultAddress,
   updateUserInfo,
 } from "../../../services/apiServices";
@@ -78,7 +77,6 @@ function Profile() {
     fetchUserAddress();
     fetchUserOrders();
   }, []);
-  console.log(orders);
 
   const fetchUserInfo = async () => {
     try {
