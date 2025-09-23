@@ -1,5 +1,6 @@
 import axios from "../util/axios.customize";
 
+//========================USER API============================
 export const loginFunction = async (payload) => {
   try {
     const res = await axios.post("/authen/login", payload);
@@ -129,6 +130,53 @@ export const addNewOrder = async (payload) => {
 export const getAllUserOrders = async () => {
   try {
     const res = await axios.get("/orders");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getAllCategories = async () => {
+  try {
+    const res = await axios.get("/categories");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getAllBrands = async () => {
+  try {
+    const res = await axios.get("/brands");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+//=========================ADMIN API==============================
+
+export const addNewProduct = async (payload) => {
+  try {
+    const res = await axios.post("/products", payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const updateProduct = async (id, payload) => {
+  try {
+    const res = await axios.put(`/products/${id}`, payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const deleteProduct = async (id) => {
+  try {
+    const res = await axios.delete(`/products/${id}`);
     return res.data;
   } catch (error) {
     console.log(error);

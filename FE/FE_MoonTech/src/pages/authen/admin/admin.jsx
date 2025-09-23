@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -24,16 +24,40 @@ import {
 import UserManagement from "./management/user/userManagement";
 import Revenue from "./management/revenue/revenue";
 import ProductManagement from "./management/product/productManagement";
+import { getAuthenticatedUser } from "../../../services/apiServices";
+import { useNavigate } from "react-router";
+import toast from "react-hot-toast";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("users");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   const menuItems = [
     { id: "users", label: "User Management", icon: Users },
     { id: "revenue", label: "Revenue", icon: TrendingUp },
     { id: "products", label: "Product Management", icon: Package },
   ];
+
+  useEffect(() => {
+    fectchUser();
+  }, []);
+
+  const fectchUser = async () => {
+    try {
+      const res = await getAuthenticatedUser();
+      setUser(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleLogout = () => {
+    toast.success("Logout success!");
+    navigate("/login");
+    sessionStorage.clear();
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -139,23 +163,19 @@ const Admin = () => {
         <header className="bg-gray-800 shadow-sm border-b border-gray-700 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">Welcome Admin</h1>
+              <h1 className="text-2xl font-bold text-white">
+                Welcome, admin {user?.username}
+              </h1>
               <p className="text-gray-400">Manage your e-commerce platform</p>
             </div>
 
             <div className="flex items-center gap-4">
               <button className="p-2 text-gray-400 hover:text-white transition-colors">
-                <Search size={20} />
-              </button>
-              <button className="p-2 text-gray-400 hover:text-white transition-colors relative">
-                <Bell size={20} />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-              </button>
-              <button className="p-2 text-gray-400 hover:text-white transition-colors">
                 <Settings size={20} />
               </button>
 
               <motion.button
+                onClick={() => handleLogout()}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
