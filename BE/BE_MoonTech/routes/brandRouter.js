@@ -10,9 +10,12 @@ const {
 
 const brandRouter = express.Router();
 brandRouter.use(bodyParser.json());
-brandRouter.use(authenticate);
 
-brandRouter.route("/").get(getAllBrand).post(addNewBrand);
-brandRouter.route("/:brandId").put(updateBrand).delete(deleteBrand);
+brandRouter.route("/").get(getAllBrand).post(authenticate, addNewBrand);
+
+brandRouter
+  .route("/:brandId")
+  .put(authenticate, updateBrand)
+  .delete(authenticate, deleteBrand);
 
 module.exports = brandRouter;

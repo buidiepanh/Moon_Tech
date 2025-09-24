@@ -10,9 +10,15 @@ const {
 
 const categoryRouter = express.Router();
 categoryRouter.use(bodyparser.json());
-categoryRouter.use(authenticate);
 
-categoryRouter.route("/").get(getAllCategory).post(addNewCategory);
-categoryRouter.route("/:categoryId").put(updateCategory).delete(deleteCategory);
+categoryRouter
+  .route("/")
+  .get(getAllCategory)
+  .post(authenticate, addNewCategory);
+
+categoryRouter
+  .route("/:categoryId")
+  .put(authenticate, updateCategory)
+  .delete(authenticate, deleteCategory);
 
 module.exports = categoryRouter;
