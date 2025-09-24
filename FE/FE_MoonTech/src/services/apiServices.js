@@ -210,3 +210,12 @@ export const deleteProduct = async (id) => {
     console.log(error);
   }
 };
+
+export const getAllUsers = async () => {
+  try {
+    const res = await axios.get("/users");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};

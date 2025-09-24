@@ -7,7 +7,7 @@ import Register from "../pages/authen/register/register";
 import Details from "../pages/user/product-details/details";
 import Cart from "../pages/user/cart/cart";
 import Profile from "../pages/user/profile/profile";
-import Admin from "../pages/authen/admin/admin";
+import Admin from "../pages/admin/admin";
 import PaymentCallback from "../pages/user/payment-callback/paymentCallback";
 
 function UserRouter() {

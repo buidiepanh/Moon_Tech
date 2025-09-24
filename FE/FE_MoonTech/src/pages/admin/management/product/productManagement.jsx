@@ -9,7 +9,7 @@ import {
   getAllCategories,
   getAllProducts,
   updateProduct,
-} from "../../../../../services/apiServices";
+} from "../../../../services/apiServices";
 import toast from "react-hot-toast";
 
 const { TextArea } = Input;
@@ -203,9 +203,6 @@ function ProductManagement() {
                   </td>
                   <td className="py-4">
                     <div className="flex gap-2">
-                      <button className="p-1 text-blue-400 hover:text-blue-300 transition-colors">
-                        <Eye size={16} />
-                      </button>
                       <button
                         onClick={() => openEditModal(product)}
                         className="p-1 text-yellow-400 hover:text-yellow-300 transition-colors"

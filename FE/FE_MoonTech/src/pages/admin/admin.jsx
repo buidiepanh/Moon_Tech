@@ -24,7 +24,7 @@ import {
 import UserManagement from "./management/user/userManagement";
 import Revenue from "./management/revenue/revenue";
 import ProductManagement from "./management/product/productManagement";
-import { getAuthenticatedUser } from "../../../services/apiServices";
+import { getAuthenticatedUser } from "../../services/apiServices";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 
