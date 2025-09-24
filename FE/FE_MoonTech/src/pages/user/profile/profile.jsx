@@ -51,6 +51,7 @@ import {
   getAllUserOrders,
   getAuthenticatedUser,
   getUserAddresses,
+  paymentFunction,
   updateDefaultAddress,
   updateUserInfo,
 } from "../../../services/apiServices";
@@ -71,6 +72,7 @@ function Profile() {
   const [userInfo, setUserInfo] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [orders, setOrders] = useState([]);
+  console.log(orders);
 
   useEffect(() => {
     fetchUserInfo();
@@ -202,6 +204,19 @@ function Profile() {
   const handleOrderView = (order) => {
     setSelectedOrder(order);
     setOrderDetailVisible(true);
+  };
+
+  const handlePaymentOrder = async (orderId, money) => {
+    try {
+      const payload = {
+        amount: money,
+      };
+      sessionStorage.setItem("orderId", orderId);
+      const res = await paymentFunction(payload);
+      window.location.href = res.url;
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -772,10 +787,12 @@ function Profile() {
                   <Button
                     type="primary"
                     className="bg-red-600 hover:bg-red-700 border-red-600"
-                    onClick={() => {
-                      // TODO: Call API to update order status -> paid
-                      toast.success("Redirecting to payment...");
-                    }}
+                    onClick={() =>
+                      handlePaymentOrder(
+                        selectedOrder._id,
+                        selectedOrder?.totalPrice
+                      )
+                    }
                   >
                     Pay Now
                   </Button>

@@ -8,6 +8,7 @@ import Details from "../pages/user/product-details/details";
 import Cart from "../pages/user/cart/cart";
 import Profile from "../pages/user/profile/profile";
 import Admin from "../pages/authen/admin/admin";
+import PaymentCallback from "../pages/user/payment-callback/paymentCallback";
 
 function UserRouter() {
   return (
@@ -20,6 +21,7 @@ function UserRouter() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/:productId" element={<Details />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/orders/vnpay-return" element={<PaymentCallback />} />
       </Routes>
       <Footer />
     </>

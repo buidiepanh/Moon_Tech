@@ -127,6 +127,16 @@ export const addNewOrder = async (payload) => {
   }
 };
 
+export const updateOrderStatus = async (id, payload) => {
+  try {
+    console.log("Test", id);
+    const res = await axios.put(`/orders/${id}`, payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 export const getAllUserOrders = async () => {
   try {
     const res = await axios.get("/orders");
@@ -149,6 +159,24 @@ export const getAllBrands = async () => {
   try {
     const res = await axios.get("/brands");
     return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const paymentFunction = async (payload) => {
+  try {
+    const res = await axios.post("/orders/create-payment", payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const paymentCallBack = async (url) => {
+  try {
+    const res = await axios.get(`/orders/vnpay-return${url}`);
+    return res;
   } catch (error) {
     console.log(error);
   }
