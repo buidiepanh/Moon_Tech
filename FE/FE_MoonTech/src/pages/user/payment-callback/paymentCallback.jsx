@@ -40,6 +40,7 @@ function PaymentCallback() {
         toast.error("Payment failed, please try again!");
         navigate("/profile");
       }
+      sessionStorage.removeItem("orderId");
     } catch (error) {
       console.log(error);
     }
