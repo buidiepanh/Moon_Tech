@@ -28,10 +28,12 @@ import { useNavigate, useParams } from "react-router";
 import {
   addNewComment,
   addToCart,
+  deleteComment,
   getAllProductComments,
   getAllProducts,
   getAuthenticatedUser,
   isPaidProduct,
+  updateComment,
 } from "../../../services/apiServices";
 import toast from "react-hot-toast";
 
@@ -47,6 +49,8 @@ function Details() {
   const [user, setUser] = useState(null);
   const [isPaid, setIsPaid] = useState(false);
   const [comments, setComments] = useState([]);
+  const [editingComment, setEditingComment] = useState(null);
+  const [editForm] = Form.useForm();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -99,6 +103,53 @@ function Details() {
       } else {
         toast.success("Add product to cart success!");
         navigate("/cart");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleEditComment = (comment) => {
+    setEditingComment(comment._id);
+    editForm.setFieldsValue({
+      content: comment.content,
+    });
+  };
+
+  const handleSaveEdit = async (commentId) => {
+    try {
+      const values = await editForm.validateFields();
+      const payload = {
+        content: values.content,
+      };
+      const res = await updateComment(commentId, payload);
+
+      if (!res) {
+        toast.error("Comment update failed!");
+      } else {
+        toast.success("Comment updated successfully!");
+        fetchProductInfo();
+      }
+      setEditingComment(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingComment(null);
+    editForm.resetFields();
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const res = await deleteComment(commentId);
+
+      if (!res) {
+        toast.error("Delete comment failed!");
+      } else {
+        toast.success("Delete comment success!");
+        fetchProductInfo();
       }
     } catch (error) {
       console.log(error);
@@ -578,24 +629,38 @@ function Details() {
                 {comments && comments.length > 0 ? (
                   comments.map((comment, index) => (
                     <motion.div
-                      key={index}
+                      key={comment._id || index}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="bg-gray-50 p-6 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+                      className="bg-gray-50 p-6 rounded-xl hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
                     >
                       <div className="flex items-start gap-4">
-                        <Avatar
-                          size="large"
-                          src={comment.author?.avatar || null}
-                          icon={!comment.author?.avatar && <UserOutlined />}
-                          className="bg-red-500"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold text-lg text-gray-900">
-                              {comment.author?.username || "Anonymous"}
-                            </h4>
+                        {/* Avatar */}
+                        <div className="flex-shrink-0">
+                          <Avatar
+                            size="large"
+                            src={comment.author?.avatar || null}
+                            icon={!comment.author?.avatar && <UserOutlined />}
+                            className="bg-gradient-to-r from-red-500 to-pink-500 border-2 border-white shadow-sm"
+                          />
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Header */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex flex-col">
+                              <h4 className="font-semibold text-lg text-gray-900">
+                                {comment.author?.username || "Anonymous User"}
+                              </h4>
+                              {comment.author?._id && (
+                                <span className="text-xs text-gray-400">
+                                  ID: {comment.author._id.slice(-8)}
+                                </span>
+                              )}
+                            </div>
+
                             <div className="flex items-center gap-3">
                               <span className="text-gray-500 text-sm">
                                 {new Date(comment.createdAt).toLocaleDateString(
@@ -607,37 +672,152 @@ function Details() {
                                   }
                                 )}
                               </span>
-                              {/* Edit & Delete buttons */}
-                              <Button
-                                size="small"
-                                type="link"
-                                onClick={() => handleEditComment(comment)}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                size="small"
-                                type="link"
-                                danger
-                                onClick={() => handleDeleteComment(comment._id)}
-                              >
-                                Delete
-                              </Button>
+
+                              {/* Action Buttons - chỉ hiện cho comment của user hiện tại */}
+                              {user && comment.author?._id === user._id && (
+                                <div className="flex items-center gap-2">
+                                  {editingComment === comment._id ? (
+                                    <>
+                                      <Button
+                                        size="small"
+                                        type="primary"
+                                        onClick={() =>
+                                          handleSaveEdit(comment._id)
+                                        }
+                                        className="bg-green-600 border-green-600 hover:bg-green-700"
+                                      >
+                                        Save
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        onClick={handleCancelEdit}
+                                        className="text-gray-600"
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        size="small"
+                                        type="link"
+                                        onClick={() =>
+                                          handleEditComment(comment)
+                                        }
+                                        className="text-blue-600 hover:text-blue-800 p-0"
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        type="link"
+                                        danger
+                                        onClick={() =>
+                                          handleDeleteComment(comment._id)
+                                        }
+                                        className="p-0"
+                                      >
+                                        Delete
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <p className="text-gray-700 leading-relaxed">
-                            {comment.content}
-                          </p>
+                          {/* Comment Content - Edit Mode hoặc Display Mode */}
+                          {editingComment === comment._id ? (
+                            <div className="bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
+                              <Form
+                                form={editForm}
+                                onFinish={() => handleSaveEdit(comment._id)}
+                              >
+                                <Form.Item
+                                  name="content"
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: "Comment cannot be empty!",
+                                    },
+                                    {
+                                      min: 5,
+                                      message:
+                                        "Comment must be at least 5 characters!",
+                                    },
+                                  ]}
+                                  className="mb-0"
+                                >
+                                  <TextArea
+                                    rows={3}
+                                    placeholder="Edit your comment..."
+                                    className="border-none shadow-none resize-none focus:ring-2 focus:ring-blue-500"
+                                    autoFocus
+                                  />
+                                </Form.Item>
+                              </Form>
+                            </div>
+                          ) : (
+                            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                              <p className="text-gray-700 leading-relaxed text-base">
+                                {comment.content}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Footer Info */}
+                          {editingComment !== comment._id && (
+                            <div className="flex items-center justify-between mt-3 text-xs text-gray-400">
+                              <span>Product Review</span>
+                              <span className="flex items-center gap-1">
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Verified Purchase
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p className="text-lg">No reviews yet</p>
-                    <p>Be the first to review this product!</p>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200"
+                  >
+                    <div className="max-w-sm mx-auto">
+                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m0 0V6a2 2 0 012-2h6a2 2 0 012 2v2"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        No reviews yet
+                      </h3>
+                      <p className="text-gray-500">
+                        Be the first to review this product!
+                      </p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Share your experience to help others
+                      </p>
+                    </div>
+                  </motion.div>
                 )}
               </div>
             </div>

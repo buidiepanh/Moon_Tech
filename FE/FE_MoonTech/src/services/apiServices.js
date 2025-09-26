@@ -109,6 +109,24 @@ export const addNewComment = async (payload) => {
   }
 };
 
+export const updateComment = async (id, payload) => {
+  try {
+    const res = await axios.put(`/comments/${id}`, payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const deleteComment = async (id) => {
+  try {
+    const res = await axios.delete(`/comments/${id}`);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 export const getUserCart = async () => {
   try {
     const res = await axios.get("/carts");
