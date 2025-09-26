@@ -82,6 +82,33 @@ export const getAllProducts = async () => {
   }
 };
 
+export const isPaidProduct = async (id) => {
+  try {
+    const res = await axios.get(`/products/${id}`);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getAllProductComments = async (id) => {
+  try {
+    const res = await axios.get("/comments", { params: { product: id } });
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const addNewComment = async (payload) => {
+  try {
+    const res = await axios.post("/comments", payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 export const getUserCart = async () => {
   try {
     const res = await axios.get("/carts");

@@ -72,13 +72,13 @@ function Profile() {
   const [userInfo, setUserInfo] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [orders, setOrders] = useState([]);
-  console.log(orders);
 
   useEffect(() => {
     fetchUserInfo();
     fetchUserAddress();
     fetchUserOrders();
   }, []);
+  console.log(orders);
 
   const fetchUserInfo = async () => {
     try {
