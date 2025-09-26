@@ -7,16 +7,14 @@ var commentSchema = new Schema(
       ref: "Users",
       required: true,
     },
+    product: {
+      type: Schema.Types.ObjectId,
+      ref: "Products",
+      required: true,
+    },
     content: {
       type: String,
       required: true,
-    },
-    stars: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-      max: 5,
     },
   },
   { timestamps: true }

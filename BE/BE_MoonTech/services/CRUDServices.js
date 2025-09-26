@@ -5,6 +5,7 @@ const Brands = require("../models/brand");
 const Users = require("../models/user");
 const Orders = require("../models/order");
 const ShippingAddresses = require("../models/shippingAddress");
+const Comments = require("../models/comment");
 
 //==================Product API================
 const getAllProducts = async (req, res, next) => {
@@ -18,6 +19,31 @@ const getAllProducts = async (req, res, next) => {
       return null;
     }
     return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const isPaidProduct = async (req, res, next) => {
+  try {
+    const productId = req.params.productId;
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    }).populate({
+      path: "items",
+      select: "cartItem",
+      populate: {
+        path: "cartItem.product",
+        select: "name price",
+      },
+    });
+    const isPaid = orders.some((order) =>
+      order.items?.cartItem?.some(
+        (item) => item.product._id.toString() === productId
+      )
+    );
+
+    return res.status(200).json(isPaid);
   } catch (error) {
     next(error);
   }
@@ -582,8 +608,104 @@ const deleteUserAddress = async (req, res, next) => {
   }
 };
 
+//====================Comment API======================
+const getProductComments = async (req, res, next) => {
+  try {
+    const { product } = req.query;
+    const result = await Comments.find({ product }).populate(
+      "author",
+      "username avatar"
+    );
+
+    if (!result) {
+      res.status(400).json("This product has no review!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addNewComment = async (req, res, next) => {
+  try {
+    const productId = req.body.product;
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    }).populate({
+      path: "items",
+      select: "cartItem",
+      populate: {
+        path: "cartItem.product",
+        select: "name price",
+      },
+    });
+    const isPaid = orders.some((order) =>
+      order.items?.cartItem?.some(
+        (item) => item.product._id.toString() === productId
+      )
+    );
+
+    if (isPaid) {
+      const result = await Comments.create({
+        product: productId,
+        content: req.body.content,
+        author: req.user._id,
+      });
+
+      if (!result) {
+        res.status(400).json("Cannot add review for this product!");
+        return null;
+      }
+      await Products.findByIdAndUpdate(productId, {
+        $push: { review: result._id },
+      });
+      return res.status(200).json(result);
+    } else {
+      return res
+        .status(400)
+        .json("You have to paid this product to post a comment!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateComment = async (req, res, next) => {
+  try {
+    const result = await Comments.findByIdAndUpdate(
+      req.params.commentId,
+      { $set: req.body },
+      { new: true }
+    );
+
+    if (!result) {
+      res.status(400).json("Cannot update this comment!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteComment = async (req, res, next) => {
+  try {
+    const result = await Comments.findByIdAndDelete(req.params.commentId);
+
+    if (!result) {
+      res.status(400).json("Cannot delete this comment!");
+      return null;
+    }
+    return res.status(200).json("Delete comment success!");
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllProducts,
+  isPaidProduct,
   addNewProduct,
   updateProduct,
   deleteProduct,
@@ -617,4 +739,9 @@ module.exports = {
   addNewAddress,
   updateUserAddress,
   deleteUserAddress,
+
+  getProductComments,
+  addNewComment,
+  updateComment,
+  deleteComment,
 };
