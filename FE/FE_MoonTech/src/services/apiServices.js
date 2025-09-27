@@ -174,7 +174,6 @@ export const addNewOrder = async (payload) => {
 
 export const updateOrderStatus = async (id, payload) => {
   try {
-    console.log("Test", id);
     const res = await axios.put(`/orders/${id}`, payload);
     return res.data;
   } catch (error) {
@@ -259,6 +258,15 @@ export const deleteProduct = async (id) => {
 export const getAllUsers = async () => {
   try {
     const res = await axios.get("/users");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getAllOrders = async () => {
+  try {
+    const res = await axios.get("/orders/allOrders");
     return res.data;
   } catch (error) {
     console.log(error);

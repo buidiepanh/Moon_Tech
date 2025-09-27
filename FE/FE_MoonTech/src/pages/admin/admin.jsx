@@ -20,6 +20,7 @@ import {
   Trash2,
   Eye,
   Filter,
+  ShoppingBag,
 } from "lucide-react";
 import UserManagement from "./management/user/userManagement";
 import Revenue from "./management/revenue/revenue";
@@ -27,6 +28,7 @@ import ProductManagement from "./management/product/productManagement";
 import { getAuthenticatedUser } from "../../services/apiServices";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
+import OrderManagement from "./management/order/orderManagement";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("users");
@@ -38,6 +40,7 @@ const Admin = () => {
     { id: "users", label: "User Management", icon: Users },
     { id: "revenue", label: "Revenue", icon: TrendingUp },
     { id: "products", label: "Product Management", icon: Package },
+    { id: "orders", label: "Order Management", icon: ShoppingBag },
   ];
 
   useEffect(() => {
@@ -67,6 +70,8 @@ const Admin = () => {
         return <Revenue />;
       case "products":
         return <ProductManagement />;
+      case "orders":
+        return <OrderManagement />;
       default:
         return <UserManagement />;
     }
