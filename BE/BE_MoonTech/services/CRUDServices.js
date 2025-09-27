@@ -6,6 +6,7 @@ const Users = require("../models/user");
 const Orders = require("../models/order");
 const ShippingAddresses = require("../models/shippingAddress");
 const Comments = require("../models/comment");
+const { path } = require("../app");
 
 //==================Product API================
 const getAllProducts = async (req, res, next) => {
@@ -475,6 +476,35 @@ const getAllUserOrders = async (req, res, next) => {
   }
 };
 
+const getAllOrders = async (req, res, next) => {
+  try {
+    if (req.user.admin) {
+      const result = await Orders.find({})
+        .populate("user", "username")
+        .populate({
+          path: "items",
+          select: "cartItem",
+          populate: {
+            path: "cartItem.product",
+            select: "name price",
+          },
+        });
+
+      if (!result) {
+        res.status(400).json("No orders found!");
+        return null;
+      }
+      return res.status(200).json(result);
+    } else {
+      return res
+        .status(401)
+        .json("You don't have permission to perform this action!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 const addNewOrder = async (req, res, next) => {
   try {
     const cartId = req.body.items;
@@ -731,6 +761,7 @@ module.exports = {
   deleteUser,
 
   getAllUserOrders,
+  getAllOrders,
   addNewOrder,
   updateOrderStatus,
   deleteAllOrders,

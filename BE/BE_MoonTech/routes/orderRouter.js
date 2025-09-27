@@ -6,6 +6,7 @@ const {
   addNewOrder,
   updateOrderStatus,
   deleteAllOrders,
+  getAllOrders,
 } = require("../services/CRUDServices");
 const { createVNPayUrl, vnpayReturn } = require("../services/paymentServices");
 
@@ -18,6 +19,7 @@ orderRouter
   .get(getAllUserOrders)
   .post(addNewOrder)
   .delete(deleteAllOrders);
+orderRouter.route("/allOrders").get(getAllOrders);
 orderRouter.route("/:orderId").put(updateOrderStatus);
 orderRouter.route("/create-payment").post(createVNPayUrl);
 orderRouter.route("/vnpay-return").get(vnpayReturn);

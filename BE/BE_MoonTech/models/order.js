@@ -14,7 +14,7 @@ var orderSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "delivered"],
+      enum: ["pending", "paid", "delivered", "canceled"],
       default: "pending",
     },
     totalPrice: {
