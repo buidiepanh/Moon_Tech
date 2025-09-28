@@ -14,6 +14,7 @@ var orderRouter = require("./routes/orderRouter");
 var userRouter = require("./routes/userRouter");
 var addressRouter = require("./routes/adressRouter");
 var commentRouter = require("./routes/commentRouter");
+var revenueRouter = require("./routes/revenueRouter");
 
 var app = express();
 app.use(cors());
@@ -34,5 +35,6 @@ app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/shippingAddress", addressRouter);
 app.use("/api/v1/comments", commentRouter);
+app.use("/api/v1/revenue", revenueRouter);
 
 module.exports = app;

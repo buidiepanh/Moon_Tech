@@ -732,6 +732,80 @@ const deleteComment = async (req, res, next) => {
     next(error);
   }
 };
+//====================Revenue API======================
+const getTotalRevenue = async (req, res, next) => {
+  try {
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    });
+    let revenue = 0;
+    const total = orders.map((item) => (revenue += item.totalPrice));
+    return res.status(200).json(total);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMonthlyRevenue = async (req, res, next) => {
+  try {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+      updatedAt: { $gte: oneMonthAgo, $lte: new Date() },
+    });
+    const monthly = orders.reduce((acc, item) => (acc += item.totalPrice), 0);
+
+    return res.status(200).json(monthly);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMonthRevenue = async (req, res, next) => {
+  try {
+    const currYear = new Date().getFullYear();
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const revenueByMonth = months.reduce((acc, month) => {
+      acc[month] = 0;
+      return acc;
+    }, {});
+
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    });
+
+    orders.forEach((item) => {
+      const updateDate = new Date(item.updatedAt);
+      const year = updateDate.getFullYear();
+
+      if (year === currYear) {
+        const monthIndex = updateDate.getMonth();
+        const monthName = months[monthIndex];
+        revenueByMonth[monthName] += item.totalPrice;
+      }
+    });
+
+    return res.status(200).json(revenueByMonth);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 module.exports = {
   getAllProducts,
@@ -775,4 +849,8 @@ module.exports = {
   addNewComment,
   updateComment,
   deleteComment,
+
+  getTotalRevenue,
+  getMonthlyRevenue,
+  getMonthRevenue,
 };
