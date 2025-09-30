@@ -4,6 +4,9 @@ const Carts = require("../models/cart");
 const Brands = require("../models/brand");
 const Users = require("../models/user");
 const Orders = require("../models/order");
+const ShippingAddresses = require("../models/shippingAddress");
+const Comments = require("../models/comment");
+const { path } = require("../app");
 
 //==================Product API================
 const getAllProducts = async (req, res, next) => {
@@ -17,6 +20,31 @@ const getAllProducts = async (req, res, next) => {
       return null;
     }
     return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const isPaidProduct = async (req, res, next) => {
+  try {
+    const productId = req.params.productId;
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    }).populate({
+      path: "items",
+      select: "cartItem",
+      populate: {
+        path: "cartItem.product",
+        select: "name price",
+      },
+    });
+    const isPaid = orders.some((order) =>
+      order.items?.cartItem?.some(
+        (item) => item.product._id.toString() === productId
+      )
+    );
+
+    return res.status(200).json(isPaid);
   } catch (error) {
     next(error);
   }
@@ -166,10 +194,10 @@ const deleteCategory = async (req, res, next) => {
 //==================Cart API=====================
 const getUserCartItem = async (req, res, next) => {
   try {
-    const result = await Carts.findOne({ user: req.user._id }).populate(
-      "cartItem.product",
-      "name price"
-    );
+    const result = await Carts.findOne({
+      user: req.user._id,
+      status: "active",
+    }).populate("cartItem.product", "name price");
 
     if (!result) {
       res.status(400).json("User cart is empty!");
@@ -184,7 +212,7 @@ const getUserCartItem = async (req, res, next) => {
 const addNewCart = async (req, res, next) => {
   try {
     const { product, quantity } = req.body;
-    let cart = await Carts.findOne({ user: req.user._id });
+    let cart = await Carts.findOne({ user: req.user._id, status: "active" });
 
     if (!cart) {
       const result = await Carts.create({
@@ -219,7 +247,7 @@ const addNewCart = async (req, res, next) => {
 const updateCartItem = async (req, res, next) => {
   try {
     const { quantity } = req.body;
-    const cart = await Carts.findOne({ user: req.user._id });
+    const cart = await Carts.findOne({ user: req.user._id, status: "active" });
     if (!cart) {
       return res.status(404).json("Cart not found!");
     }
@@ -257,7 +285,7 @@ const deleteCartItem = async (req, res, next) => {
       return res.status(400).json("Product ID is required");
     }
 
-    const cart = await Carts.findOne({ user: req.user._id });
+    const cart = await Carts.findOne({ user: req.user._id, status: "active" });
     if (!cart) {
       return res.status(404).json("Cart not found");
     }
@@ -374,7 +402,9 @@ const getAllUsers = async (req, res, next) => {
 const getAuthenticatedUser = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const user = await Users.findById(userId).select("-password");
+    const user = await Users.findById(userId)
+      .select("-password")
+      .populate("shippingAddress", "isDefault");
 
     if (!user) {
       res.status(404).json("User not found!");
@@ -426,7 +456,14 @@ const deleteUser = async (req, res, next) => {
 //====================Order API=======================
 const getAllUserOrders = async (req, res, next) => {
   try {
-    const orders = await Orders.find({ user: req.user._id });
+    const orders = await Orders.find({ user: req.user._id }).populate({
+      path: "items",
+      select: "cartItem",
+      populate: {
+        path: "cartItem.product",
+        select: "name price",
+      },
+    });
 
     if (!orders) {
       res.status(400).json("No orders found!");
@@ -439,14 +476,46 @@ const getAllUserOrders = async (req, res, next) => {
   }
 };
 
+const getAllOrders = async (req, res, next) => {
+  try {
+    if (req.user.admin) {
+      const result = await Orders.find({})
+        .populate("user", "username")
+        .populate({
+          path: "items",
+          select: "cartItem",
+          populate: {
+            path: "cartItem.product",
+            select: "name price",
+          },
+        });
+
+      if (!result) {
+        res.status(400).json("No orders found!");
+        return null;
+      }
+      return res.status(200).json(result);
+    } else {
+      return res
+        .status(401)
+        .json("You don't have permission to perform this action!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 const addNewOrder = async (req, res, next) => {
   try {
+    const cartId = req.body.items;
     const result = await Orders.create(req.body);
 
     if (!result) {
       res.status(400).json("Cannot add order!");
       return null;
     }
+    await Carts.findByIdAndUpdate(cartId, { status: "deactive" });
+
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -475,8 +544,342 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
+const deleteAllOrders = async (req, res, next) => {
+  try {
+    const result = await Orders.deleteMany({});
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json("No orders found to delete!");
+    }
+
+    return res.status(200).json({
+      message: "All orders deleted successfully!",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//===================Shipping Address API=============
+const getAllUserAddresses = async (req, res, next) => {
+  try {
+    const result = await ShippingAddresses.find({ user: req.user._id });
+
+    if (!result) {
+      res.status(400).json("No address found!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addNewAddress = async (req, res, next) => {
+  try {
+    const userId = req.body.user;
+    const result = await ShippingAddresses.create(req.body);
+
+    if (!result) {
+      res.status(400).json("Cannot add address!");
+      return null;
+    }
+
+    await Users.findByIdAndUpdate(userId, {
+      $push: { shippingAddress: result._id },
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateUserAddress = async (req, res, next) => {
+  try {
+    const { isDefault } = req.body;
+
+    if (isDefault) {
+      await ShippingAddresses.updateMany(
+        { user: req.user._id, _id: { $ne: req.params.addressId } },
+        { $set: { isDefault: false } }
+      );
+    }
+    const result = await ShippingAddresses.findByIdAndUpdate(
+      req.params.addressId,
+      { $set: { isDefault: true } },
+      { new: true }
+    );
+
+    if (!result) {
+      res.status(400).json("Cannot update user's address!");
+      return null;
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteUserAddress = async (req, res, next) => {
+  try {
+    const response = await ShippingAddresses.findByIdAndDelete(
+      req.params.addressId
+    );
+
+    if (!response) {
+      res.status(400).json("Cannot delete address!");
+      return null;
+    }
+    return res.status(200).json("Delete address success!");
+  } catch (error) {
+    next(error);
+  }
+};
+
+//====================Comment API======================
+const getProductComments = async (req, res, next) => {
+  try {
+    const { product } = req.query;
+    const result = await Comments.find({ product }).populate(
+      "author",
+      "username avatar"
+    );
+
+    if (!result) {
+      res.status(400).json("This product has no review!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addNewComment = async (req, res, next) => {
+  try {
+    const productId = req.body.product;
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    }).populate({
+      path: "items",
+      select: "cartItem",
+      populate: {
+        path: "cartItem.product",
+        select: "name price",
+      },
+    });
+    const isPaid = orders.some((order) =>
+      order.items?.cartItem?.some(
+        (item) => item.product._id.toString() === productId
+      )
+    );
+
+    if (isPaid) {
+      const result = await Comments.create({
+        product: productId,
+        content: req.body.content,
+        author: req.user._id,
+      });
+
+      if (!result) {
+        res.status(400).json("Cannot add review for this product!");
+        return null;
+      }
+      await Products.findByIdAndUpdate(productId, {
+        $push: { review: result._id },
+      });
+      return res.status(200).json(result);
+    } else {
+      return res
+        .status(400)
+        .json("You have to paid this product to post a comment!");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateComment = async (req, res, next) => {
+  try {
+    const result = await Comments.findByIdAndUpdate(
+      req.params.commentId,
+      { $set: req.body },
+      { new: true }
+    );
+
+    if (!result) {
+      res.status(400).json("Cannot update this comment!");
+      return null;
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteComment = async (req, res, next) => {
+  try {
+    const result = await Comments.findByIdAndDelete(req.params.commentId);
+
+    if (!result) {
+      res.status(400).json("Cannot delete this comment!");
+      return null;
+    }
+    return res.status(200).json("Delete comment success!");
+  } catch (error) {
+    next(error);
+  }
+};
+//====================Revenue API======================
+const getTotalRevenue = async (req, res, next) => {
+  try {
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    });
+    const total = orders.reduce((acc, item) => (acc += item.totalPrice), 0);
+    return res.status(200).json(total);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMonthlyRevenue = async (req, res, next) => {
+  try {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+      updatedAt: { $gte: oneMonthAgo, $lte: new Date() },
+    });
+    const monthly = orders.reduce((acc, item) => (acc += item.totalPrice), 0);
+
+    return res.status(200).json(monthly);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMonthRevenue = async (req, res, next) => {
+  try {
+    const currYear = new Date().getFullYear();
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const revenueByMonth = months.reduce((acc, month) => {
+      acc[month] = 0;
+      return acc;
+    }, {});
+
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    });
+
+    orders.forEach((item) => {
+      const updateDate = new Date(item.updatedAt);
+      const year = updateDate.getFullYear();
+
+      if (year === currYear) {
+        const monthIndex = updateDate.getMonth();
+        const monthName = months[monthIndex];
+        revenueByMonth[monthName] += item.totalPrice;
+      }
+    });
+
+    return res.status(200).json(revenueByMonth);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const getAverageMoneyEachOrder = async (req, res, next) => {
+  try {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+      updatedAt: { $gte: oneMonthAgo, $lte: new Date() },
+    });
+
+    if (orders.length === 0) {
+      return res.status(200).json({ average: 0 });
+    }
+
+    const total = orders.reduce((acc, item) => (acc += item.totalPrice), 0);
+    const avg = total / orders.length;
+
+    return res.status(200).json(avg);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCategoryMoney = async (req, res, next) => {
+  try {
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    }).populate({
+      path: "items",
+      populate: {
+        path: "cartItem.product",
+        model: "Products",
+        select: "name category price",
+        populate: {
+          path: "category",
+          model: "Categories",
+          select: "cateName",
+        },
+      },
+    });
+
+    const categoryTotals = {};
+    orders.forEach((order) => {
+      order.items.cartItem.forEach((cart) => {
+        const product = cart.product;
+        if (!product) return;
+
+        const cost = product.price * cart.quantity;
+        const cateName = product.category.cateName;
+        if (!categoryTotals[cateName]) {
+          categoryTotals[cateName] = 0;
+        }
+        categoryTotals[cateName] += cost;
+      });
+    });
+
+    const total = Object.values(categoryTotals).reduce(
+      (acc, val) => acc + val,
+      0
+    );
+    const result = Object.entries(categoryTotals).map(([name, money]) => ({
+      name,
+      value: total > 0 ? Math.round((money / total) * 100) : 0,
+    }));
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllProducts,
+  isPaidProduct,
   addNewProduct,
   updateProduct,
   deleteProduct,
@@ -502,6 +905,24 @@ module.exports = {
   deleteUser,
 
   getAllUserOrders,
+  getAllOrders,
   addNewOrder,
   updateOrderStatus,
+  deleteAllOrders,
+
+  getAllUserAddresses,
+  addNewAddress,
+  updateUserAddress,
+  deleteUserAddress,
+
+  getProductComments,
+  addNewComment,
+  updateComment,
+  deleteComment,
+
+  getTotalRevenue,
+  getMonthlyRevenue,
+  getMonthRevenue,
+  getAverageMoneyEachOrder,
+  getCategoryMoney,
 };

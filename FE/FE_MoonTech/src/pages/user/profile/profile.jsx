@@ -45,6 +45,17 @@ import {
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import dayjs from "dayjs";
+import {
+  addNewAddress,
+  deleteAddress,
+  getAllUserOrders,
+  getAuthenticatedUser,
+  getUserAddresses,
+  paymentFunction,
+  updateDefaultAddress,
+  updateUserInfo,
+} from "../../../services/apiServices";
+import toast from "react-hot-toast";
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -58,73 +69,43 @@ function Profile() {
   const [editingAddress, setEditingAddress] = useState(false);
   const [orderDetailVisible, setOrderDetailVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
+  const [addresses, setAddresses] = useState([]);
+  const [orders, setOrders] = useState([]);
 
-  // Mock user data
-  const [userInfo, setUserInfo] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    dateOfBirth: "1990-01-15",
-    gender: "male",
-    avatar: null,
-  });
+  useEffect(() => {
+    fetchUserInfo();
+    fetchUserAddress();
+    fetchUserOrders();
+  }, []);
+  console.log(orders);
 
-  // Mock addresses data
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      phone: "+1 (555) 123-4567",
-      address: "123 Main Street, Apt 4B",
-      city: "New York",
-      state: "NY",
-      zipCode: "10001",
-      country: "United States",
-      isDefault: true,
-    },
-    {
-      id: 2,
-      name: "John Doe",
-      phone: "+1 (555) 123-4567",
-      address: "456 Oak Avenue",
-      city: "Brooklyn",
-      state: "NY",
-      zipCode: "11201",
-      country: "United States",
-      isDefault: false,
-    },
-  ]);
+  const fetchUserInfo = async () => {
+    try {
+      const res = await getAuthenticatedUser();
+      setUserInfo(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-  // Mock orders data
-  const [orders, setOrders] = useState([
-    {
-      id: "ORD001",
-      date: "2024-01-15",
-      status: "delivered",
-      total: 299.99,
-      items: 3,
-      products: [
-        { name: "Wireless Headphones", quantity: 1, price: 149.99 },
-        { name: "Phone Case", quantity: 2, price: 75.0 },
-      ],
-    },
-    {
-      id: "ORD002",
-      date: "2024-01-10",
-      status: "shipping",
-      total: 89.99,
-      items: 1,
-      products: [{ name: "Bluetooth Speaker", quantity: 1, price: 89.99 }],
-    },
-    {
-      id: "ORD003",
-      date: "2024-01-05",
-      status: "processing",
-      total: 199.99,
-      items: 2,
-      products: [{ name: "Smart Watch", quantity: 1, price: 199.99 }],
-    },
-  ]);
+  const fetchUserAddress = async () => {
+    try {
+      const res = await getUserAddresses();
+      setAddresses(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchUserOrders = async () => {
+    try {
+      const res = await getAllUserOrders();
+      setOrders(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -143,55 +124,99 @@ function Profile() {
     visible: { opacity: 1, x: 0 },
   };
 
-  // Initialize forms with user data
   useEffect(() => {
     personalForm.setFieldsValue({
       ...userInfo,
-      dateOfBirth: userInfo.dateOfBirth ? dayjs(userInfo.dateOfBirth) : null,
     });
   }, [userInfo, personalForm]);
 
-  const handlePersonalSave = (values) => {
-    const updatedInfo = {
-      ...values,
-      dateOfBirth: values.dateOfBirth
-        ? values.dateOfBirth.format("YYYY-MM-DD")
-        : null,
-    };
-    setUserInfo(updatedInfo);
-    setEditingPersonal(false);
-    message.success("Personal information updated successfully!");
+  const handlePersonalSave = async (values) => {
+    try {
+      const res = await updateUserInfo(userInfo._id, values);
+
+      if (!res) {
+        toast.error("Update information failed!");
+      } else {
+        toast.success("Update information success!");
+        fetchUserInfo();
+      }
+      setEditingPersonal(false);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const handleAddressAdd = (values) => {
-    const newAddress = {
-      id: Date.now(),
-      ...values,
-      isDefault: addresses.length === 0,
-    };
-    setAddresses([...addresses, newAddress]);
-    addressForm.resetFields();
-    message.success("Address added successfully!");
+  const handleAddressAdd = async (values) => {
+    try {
+      const newAddress = {
+        ...values,
+        user: userInfo._id,
+        isDefault: false,
+      };
+      const res = await addNewAddress(newAddress);
+
+      if (!res) {
+        toast.error("Cannot add new address!");
+      } else {
+        toast.success("Add new address success!");
+        setEditingAddress(false);
+        fetchUserAddress();
+      }
+      addressForm.resetFields();
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const handleAddressDelete = (id) => {
-    setAddresses(addresses.filter((addr) => addr.id !== id));
-    message.success("Address deleted successfully!");
+  const handleAddressDelete = async (id) => {
+    try {
+      const res = await deleteAddress(id);
+
+      if (!res) {
+        toast.error("Delete address failed!");
+      } else {
+        toast.success("Delete address success!");
+        fetchUserAddress();
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const handleSetDefaultAddress = (id) => {
-    setAddresses(
-      addresses.map((addr) => ({
-        ...addr,
-        isDefault: addr.id === id,
-      }))
-    );
-    message.success("Default address updated!");
+  const handleSetDefaultAddress = async (id) => {
+    try {
+      const payload = {
+        isDefault: true,
+      };
+      const res = await updateDefaultAddress(id, payload);
+
+      if (!res) {
+        toast.error("Cannot set default this address!");
+      } else {
+        toast.success("Set default this address success!");
+        fetchUserAddress();
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const handleOrderView = (order) => {
     setSelectedOrder(order);
     setOrderDetailVisible(true);
+  };
+
+  const handlePaymentOrder = async (orderId, money) => {
+    try {
+      const payload = {
+        amount: money,
+      };
+      sessionStorage.setItem("orderId", orderId);
+      const res = await paymentFunction(payload);
+      window.location.href = res.url;
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -215,25 +240,25 @@ function Profile() {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("vi-VN", {
       style: "currency",
-      currency: "USD",
+      currency: "VND",
     }).format(amount);
   };
 
   const orderColumns = [
     {
       title: "Order ID",
-      dataIndex: "id",
-      key: "id",
+      dataIndex: "_id",
+      key: "_id",
       render: (text) => (
         <Text className="font-mono font-medium text-red-600">{text}</Text>
       ),
     },
     {
       title: "Date",
-      dataIndex: "date",
-      key: "date",
+      dataIndex: "createdAt",
+      key: "createdAt",
       render: (date) => dayjs(date).format("MMM DD, YYYY"),
     },
     {
@@ -254,12 +279,14 @@ function Profile() {
       title: "Items",
       dataIndex: "items",
       key: "items",
-      render: (items) => <Badge count={items} className="bg-red-600" />,
+      render: (items) => (
+        <Badge count={items?.cartItem?.length || 0} className="bg-red-600" />
+      ),
     },
     {
       title: "Total",
-      dataIndex: "total",
-      key: "total",
+      dataIndex: "totalPrice",
+      key: "totalPrice",
       render: (total) => (
         <Text className="font-semibold text-red-600">
           {formatCurrency(total)}
@@ -296,7 +323,7 @@ function Profile() {
             <motion.div whileHover={{ scale: 1.05 }} className="relative">
               <Avatar
                 size={120}
-                src={userInfo.avatar}
+                src={userInfo?.avatar}
                 icon={<UserOutlined />}
                 className="border-4 border-red-600 shadow-lg"
               />
@@ -310,16 +337,16 @@ function Profile() {
             </motion.div>
             <div>
               <Title level={2} className="text-gray-900 m-0 mb-2">
-                {userInfo.name}
+                {userInfo?.username}
               </Title>
               <Space direction="vertical" size={4}>
                 <Text className="text-gray-600 flex items-center gap-2">
                   <MailOutlined className="text-red-600" />
-                  {userInfo.email}
+                  {userInfo?.email}
                 </Text>
                 <Text className="text-gray-600 flex items-center gap-2">
                   <PhoneOutlined className="text-red-600" />
-                  {userInfo.phone}
+                  {userInfo?.phone}
                 </Text>
               </Space>
             </div>
@@ -380,7 +407,7 @@ function Profile() {
                     <Row gutter={[24, 16]}>
                       <Col xs={24} md={12}>
                         <Form.Item
-                          name="name"
+                          name="username"
                           label="Full Name"
                           rules={[
                             {
@@ -534,7 +561,13 @@ function Profile() {
                                   },
                                 ]}
                               >
-                                <Input placeholder="Enter city" />
+                                <Select placeholder="Select city">
+                                  <Option value="HoChiMinh">Ho Chi Minh</Option>
+                                  <Option value="CanTho">Can Tho</Option>
+                                  <Option value="QuyNhon">Quy Nhon</Option>
+                                  <Option value="HaNoi">Ha Noi</Option>
+                                  <Option value="DaNang">Da Nang</Option>
+                                </Select>
                               </Form.Item>
                             </Col>
                           </Row>
@@ -559,13 +592,13 @@ function Profile() {
                   <div className="space-y-4">
                     {addresses.map((address, index) => (
                       <motion.div
-                        key={address.id}
+                        key={address?.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
                       >
                         <Card className="relative border border-gray-200 hover:border-red-300 transition-colors">
-                          {address.isDefault && (
+                          {address?.isDefault && (
                             <div className="absolute -top-2 -right-2 z-10">
                               <Badge.Ribbon text="Default" color="red" />
                             </div>
@@ -582,25 +615,24 @@ function Profile() {
                                     level={5}
                                     className="text-gray-900 m-0"
                                   >
-                                    {address.name}
+                                    {userInfo?.username}
                                   </Title>
                                   <Text className="text-gray-600">
-                                    {address.phone}
+                                    {userInfo?.phone}
                                   </Text>
                                   <Text className="text-gray-700">
-                                    {address.address}, {address.city},{" "}
-                                    {address.state} {address.zipCode}
+                                    {address?.address}, {address?.city}
                                   </Text>
                                 </Space>
                               </div>
                             </Col>
                             <Col xs={24} lg={6}>
                               <div className="flex flex-col gap-2 lg:items-end">
-                                {!address.isDefault && (
+                                {!address?.isDefault && (
                                   <Button
                                     size="small"
                                     onClick={() =>
-                                      handleSetDefaultAddress(address.id)
+                                      handleSetDefaultAddress(address._id)
                                     }
                                     className="text-red-600 hover:text-red-700 border-red-600 hover:border-red-700"
                                   >
@@ -612,7 +644,7 @@ function Profile() {
                                   danger
                                   icon={<DeleteOutlined />}
                                   onClick={() =>
-                                    handleAddressDelete(address.id)
+                                    handleAddressDelete(address._id)
                                   }
                                 >
                                   Delete
@@ -670,7 +702,7 @@ function Profile() {
           title={
             <div className="flex items-center gap-3">
               <ShoppingOutlined className="text-red-600" />
-              Order Details - {selectedOrder?.id}
+              Order Details - {selectedOrder?._id}
             </div>
           }
           open={orderDetailVisible}
@@ -680,12 +712,13 @@ function Profile() {
         >
           {selectedOrder && (
             <div className="space-y-6">
+              {/* Order Info */}
               <Descriptions column={2} bordered>
                 <Descriptions.Item label="Order ID">
-                  {selectedOrder.id}
+                  {selectedOrder._id}
                 </Descriptions.Item>
                 <Descriptions.Item label="Date">
-                  {dayjs(selectedOrder.date).format("MMMM DD, YYYY")}
+                  {dayjs(selectedOrder.createdAt).format("MMMM DD, YYYY")}
                 </Descriptions.Item>
                 <Descriptions.Item label="Status">
                   <Tag
@@ -697,53 +730,48 @@ function Profile() {
                 </Descriptions.Item>
                 <Descriptions.Item label="Total">
                   <Text className="font-semibold text-red-600 text-lg">
-                    {formatCurrency(selectedOrder.total)}
+                    {formatCurrency(selectedOrder.totalPrice)}
                   </Text>
                 </Descriptions.Item>
               </Descriptions>
 
+              {/* Items */}
               <div>
                 <Title level={5} className="text-gray-900 mb-3">
                   Order Items
                 </Title>
                 <div className="space-y-3">
-                  {selectedOrder.products?.map((product, index) => (
+                  {selectedOrder.items?.cartItem?.map((cart, index) => (
                     <div
                       key={index}
                       className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
                     >
                       <div>
-                        <Text className="font-medium">{product.name}</Text>
+                        <Text className="font-medium">
+                          {cart.product?.name}
+                        </Text>
                         <Text className="text-gray-600 block">
-                          Quantity: {product.quantity}
+                          Quantity: {cart.quantity}
                         </Text>
                       </div>
                       <Text className="font-semibold text-red-600">
-                        {formatCurrency(product.price)}
+                        {formatCurrency(cart.product?.price)}
                       </Text>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* Timeline */}
               <Timeline
                 items={[
                   {
-                    color: "green",
-                    children: "Order placed",
+                    color: selectedOrder.status === "pending" ? "red" : "green",
+                    children: "Pending Payment",
                   },
                   {
-                    color:
-                      selectedOrder.status === "processing" ? "red" : "green",
-                    children: "Processing",
-                  },
-                  {
-                    color: ["shipping", "delivered"].includes(
-                      selectedOrder.status
-                    )
-                      ? "green"
-                      : "gray",
-                    children: "Shipped",
+                    color: selectedOrder.status === "paid" ? "green" : "gray",
+                    children: "Paid",
                   },
                   {
                     color:
@@ -752,6 +780,24 @@ function Profile() {
                   },
                 ]}
               />
+
+              {/* Pay Button */}
+              {selectedOrder.status === "pending" && (
+                <div className="flex justify-end">
+                  <Button
+                    type="primary"
+                    className="bg-red-600 hover:bg-red-700 border-red-600"
+                    onClick={() =>
+                      handlePaymentOrder(
+                        selectedOrder._id,
+                        selectedOrder?.totalPrice
+                      )
+                    }
+                  >
+                    Pay Now
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </Modal>

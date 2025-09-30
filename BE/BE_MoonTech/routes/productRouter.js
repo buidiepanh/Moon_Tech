@@ -5,6 +5,7 @@ const {
   addNewProduct,
   updateProduct,
   deleteProduct,
+  isPaidProduct,
 } = require("../services/CRUDServices");
 const authenticate = require("../middleware/authenticate");
 
@@ -14,6 +15,7 @@ productRouter.use(bodyparser.json());
 productRouter.route("/").get(getAllProducts).post(authenticate, addNewProduct);
 productRouter
   .route("/:productId")
+  .get(authenticate, isPaidProduct)
   .put(authenticate, updateProduct)
   .delete(authenticate, deleteProduct);
 

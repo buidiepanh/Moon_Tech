@@ -7,6 +7,8 @@ import Register from "../pages/authen/register/register";
 import Details from "../pages/user/product-details/details";
 import Cart from "../pages/user/cart/cart";
 import Profile from "../pages/user/profile/profile";
+import Admin from "../pages/admin/admin";
+import PaymentCallback from "../pages/user/payment-callback/paymentCallback";
 
 function UserRouter() {
   return (
@@ -17,10 +19,21 @@ function UserRouter() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/:productId" element={<Details />} />
+        <Route path="product-detail/:productId" element={<Details />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/orders/vnpay-return" element={<PaymentCallback />} />
       </Routes>
       <Footer />
+    </>
+  );
+}
+
+function AdminRouter() {
+  return (
+    <>
+      <Routes>
+        <Route path="" element={<Admin />} />
+      </Routes>
     </>
   );
 }
@@ -30,6 +43,7 @@ export function AppRouter() {
     <>
       <Routes>
         <Route path="/*" element={<UserRouter />} />
+        <Route path="/admin" element={<AdminRouter />} />
       </Routes>
     </>
   );

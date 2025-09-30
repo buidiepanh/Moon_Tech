@@ -14,7 +14,7 @@ var orderSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "delivered"],
+      enum: ["pending", "paid", "delivered", "canceled"],
       default: "pending",
     },
     totalPrice: {
@@ -22,19 +22,11 @@ var orderSchema = new Schema(
       required: true,
       min: 1,
     },
-    shippingAddress: [
-      {
-        address: {
-          type: String,
-          required: true,
-        },
-        city: {
-          type: String,
-          enum: ["HoChiMinh", "CanTho", "QuyNhon", "HaNoi", "DaNang"],
-          default: "HoChiMinh",
-        },
-      },
-    ],
+    shippingAddress: {
+      type: Schema.Types.ObjectId,
+      ref: "shippingAddresses",
+      required: true,
+    },
   },
   { timestamps: true }
 );

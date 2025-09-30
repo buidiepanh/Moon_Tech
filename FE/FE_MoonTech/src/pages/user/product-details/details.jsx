@@ -25,7 +25,16 @@ import {
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router";
-import { addToCart, getAllProducts } from "../../../services/apiServices";
+import {
+  addNewComment,
+  addToCart,
+  deleteComment,
+  getAllProductComments,
+  getAllProducts,
+  getAuthenticatedUser,
+  isPaidProduct,
+  updateComment,
+} from "../../../services/apiServices";
 import toast from "react-hot-toast";
 
 const { TabPane } = Tabs;
@@ -37,8 +46,16 @@ function Details() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [form] = Form.useForm();
-  const [userRating, setUserRating] = useState(0);
+  const [user, setUser] = useState(null);
+  const [isPaid, setIsPaid] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [editingComment, setEditingComment] = useState(null);
+  const [editForm] = Form.useForm();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchAuthenticatedUser();
+  }, []);
 
   useEffect(() => {
     fetchProductInfo();
@@ -48,15 +65,28 @@ function Details() {
     try {
       setLoading(true);
       const res = await getAllProducts();
+      const res1 = await isPaidProduct(productId);
+      const res2 = await getAllProductComments(productId);
       const p = res.find(
         (item) => item._id.toString() === productId.toString()
       );
       setProduct(p);
+      setIsPaid(res1);
+      setComments(res2);
     } catch (error) {
       console.log(error);
       message.error("Failed to load product details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAuthenticatedUser = async () => {
+    try {
+      const res = await getAuthenticatedUser();
+      setUser(res);
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -73,6 +103,53 @@ function Details() {
       } else {
         toast.success("Add product to cart success!");
         navigate("/cart");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleEditComment = (comment) => {
+    setEditingComment(comment._id);
+    editForm.setFieldsValue({
+      content: comment.content,
+    });
+  };
+
+  const handleSaveEdit = async (commentId) => {
+    try {
+      const values = await editForm.validateFields();
+      const payload = {
+        content: values.content,
+      };
+      const res = await updateComment(commentId, payload);
+
+      if (!res) {
+        toast.error("Comment update failed!");
+      } else {
+        toast.success("Comment updated successfully!");
+        fetchProductInfo();
+      }
+      setEditingComment(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingComment(null);
+    editForm.resetFields();
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const res = await deleteComment(commentId);
+
+      if (!res) {
+        toast.error("Delete comment failed!");
+      } else {
+        toast.success("Delete comment success!");
+        fetchProductInfo();
       }
     } catch (error) {
       console.log(error);
@@ -102,17 +179,20 @@ function Details() {
 
   const handleReviewSubmit = async (values) => {
     try {
-      // Mock API call - replace with actual API
-      console.log("New review:", {
-        ...values,
-        rating: userRating,
-        author: "Current User", // Replace with actual user data
-        date: "Just now",
-      });
+      const payload = {
+        author: user._id,
+        product: productId,
+        content: values.content,
+      };
+      const res = await addNewComment(payload);
 
-      message.success("Review submitted successfully!");
+      if (!res) {
+        toast.error("Cannot post this comment!");
+      } else {
+        toast.success("Comment posted success!");
+        fetchProductInfo();
+      }
       form.resetFields();
-      setUserRating(0);
     } catch (error) {
       message.error("Failed to submit review. Please try again.");
     }
@@ -365,103 +445,379 @@ function Details() {
                 <h4 className="text-xl font-bold text-gray-900 mb-4">
                   Write a Review
                 </h4>
-                <Form
-                  form={form}
-                  onFinish={handleReviewSubmit}
-                  layout="vertical"
-                >
-                  <Form.Item label="Your Rating" className="mb-4">
-                    <Rate
-                      value={userRating}
-                      onChange={setUserRating}
-                      className="text-red-500 text-2xl"
-                    />
-                  </Form.Item>
 
-                  <Form.Item
-                    name="content"
-                    label="Your Review"
-                    rules={[
-                      { required: true, message: "Please write your review!" },
-                      {
-                        min: 10,
-                        message: "Review must be at least 10 characters long!",
-                      },
-                    ]}
+                {!isPaid ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="relative overflow-hidden"
                   >
-                    <TextArea
-                      rows={4}
-                      placeholder="Share your experience with this product..."
-                      className="rounded-lg"
-                    />
-                  </Form.Item>
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl"></div>
 
-                  <Form.Item className="mb-0">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        icon={<SendOutlined />}
-                        size="large"
-                        className="bg-red-600 hover:bg-red-700 border-red-600 px-8"
-                        disabled={userRating === 0}
+                    {/* Content Container */}
+                    <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-2xl border border-orange-200 shadow-lg">
+                      {/* Icon */}
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{
+                          delay: 0.5,
+                          type: "spring",
+                          stiffness: 200,
+                        }}
+                        className="flex justify-center mb-6"
                       >
-                        Submit Review
-                      </Button>
-                    </motion.div>
-                  </Form.Item>
-                </Form>
+                        <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                          <svg
+                            className="w-10 h-10 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                            />
+                          </svg>
+                        </div>
+                      </motion.div>
+
+                      {/* Title */}
+                      <motion.h3
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="text-2xl font-bold text-gray-800 text-center mb-4"
+                      >
+                        Purchase Required
+                      </motion.h3>
+
+                      {/* Main Message */}
+                      <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.7 }}
+                        className="text-gray-700 text-center text-lg leading-relaxed mb-6"
+                      >
+                        To ensure authentic and helpful reviews, you need to{" "}
+                        <span className="font-semibold text-orange-600">
+                          purchase and experience
+                        </span>{" "}
+                        this product first.
+                      </motion.p>
+
+                      {/* Features List */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.8 }}
+                        className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-4 mb-6 border border-orange-100"
+                      >
+                        <div className="space-y-4">
+                          {[
+                            {
+                              icon: "✨",
+                              text: "Share genuine experiences",
+                              color: "from-yellow-400 to-orange-500",
+                            },
+                            {
+                              icon: "🤝",
+                              text: "Help other customers decide",
+                              color: "from-orange-400 to-red-500",
+                            },
+                            {
+                              icon: "🏆",
+                              text: "Build trusted community reviews",
+                              color: "from-red-400 to-pink-500",
+                            },
+                          ].map((feature, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.9 + index * 0.1 }}
+                              className="flex items-center bg-white/60 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow duration-200"
+                            >
+                              <div
+                                className={`w-8 h-8 bg-gradient-to-r ${feature.color} rounded-full flex items-center justify-center mr-4 text-white text-sm font-bold shadow-sm`}
+                              >
+                                {feature.icon}
+                              </div>
+                              <span className="text-gray-700 font-medium">
+                                {feature.text}
+                              </span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      {/* Call to Action */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1.2 }}
+                        className="text-center"
+                      >
+                        <p className="text-xs text-gray-500 mt-3">
+                          Once purchased, you can write your review here
+                        </p>
+                      </motion.div>
+
+                      {/* Decorative Elements */}
+                      <div className="absolute top-4 right-4 w-8 h-8 bg-orange-200 rounded-full opacity-20"></div>
+                      <div className="absolute bottom-4 left-4 w-6 h-6 bg-red-200 rounded-full opacity-20"></div>
+                      <div className="absolute top-1/2 left-2 w-4 h-4 bg-yellow-200 rounded-full opacity-20"></div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <Form
+                    form={form}
+                    onFinish={handleReviewSubmit}
+                    layout="vertical"
+                  >
+                    {/* Bỏ Rating đi */}
+                    <Form.Item
+                      name="content"
+                      label="Your Review"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please write your review!",
+                        },
+                        {
+                          min: 10,
+                          message:
+                            "Review must be at least 10 characters long!",
+                        },
+                      ]}
+                    >
+                      <TextArea
+                        rows={4}
+                        placeholder="Share your experience with this product..."
+                        className="rounded-lg"
+                      />
+                    </Form.Item>
+
+                    <Form.Item className="mb-0">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          icon={<SendOutlined />}
+                          size="large"
+                          className="bg-red-600 hover:bg-red-700 border-red-600 px-8"
+                        >
+                          Submit Review
+                        </Button>
+                      </motion.div>
+                    </Form.Item>
+                  </Form>
+                )}
               </motion.div>
 
               <Divider className="border-gray-300" />
 
               {/* Existing Reviews */}
               <div className="grid gap-6">
-                {product.review && product.review.length > 0 ? (
-                  product.review.map((review, index) => (
+                {comments && comments.length > 0 ? (
+                  comments.map((comment, index) => (
                     <motion.div
-                      key={index}
+                      key={comment._id || index}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="bg-gray-50 p-6 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+                      className="bg-gray-50 p-6 rounded-xl hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
                     >
                       <div className="flex items-start gap-4">
-                        <Avatar
-                          size="large"
-                          icon={<UserOutlined />}
-                          className="bg-red-500"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold text-lg text-gray-900">
-                              {review.author || "Anonymous"}
-                            </h4>
-                            <span className="text-gray-500 text-sm">
-                              {review.date || "Recently"}
-                            </span>
-                          </div>
-                          <Rate
-                            disabled
-                            defaultValue={review.rating || 0}
-                            size="small"
-                            className="text-red-500 mb-3"
+                        {/* Avatar */}
+                        <div className="flex-shrink-0">
+                          <Avatar
+                            size="large"
+                            src={comment.author?.avatar || null}
+                            icon={!comment.author?.avatar && <UserOutlined />}
+                            className="bg-gradient-to-r from-red-500 to-pink-500 border-2 border-white shadow-sm"
                           />
-                          <p className="text-gray-700 leading-relaxed">
-                            {review.content}
-                          </p>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Header */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex flex-col">
+                              <h4 className="font-semibold text-lg text-gray-900">
+                                {comment.author?.username || "Anonymous User"}
+                              </h4>
+                              {comment.author?._id && (
+                                <span className="text-xs text-gray-400">
+                                  ID: {comment.author._id.slice(-8)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="text-gray-500 text-sm">
+                                {new Date(comment.createdAt).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                )}
+                              </span>
+
+                              {/* Action Buttons - chỉ hiện cho comment của user hiện tại */}
+                              {user && comment.author?._id === user._id && (
+                                <div className="flex items-center gap-2">
+                                  {editingComment === comment._id ? (
+                                    <>
+                                      <Button
+                                        size="small"
+                                        type="primary"
+                                        onClick={() =>
+                                          handleSaveEdit(comment._id)
+                                        }
+                                        className="bg-green-600 border-green-600 hover:bg-green-700"
+                                      >
+                                        Save
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        onClick={handleCancelEdit}
+                                        className="text-gray-600"
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        size="small"
+                                        type="link"
+                                        onClick={() =>
+                                          handleEditComment(comment)
+                                        }
+                                        className="text-blue-600 hover:text-blue-800 p-0"
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        type="link"
+                                        danger
+                                        onClick={() =>
+                                          handleDeleteComment(comment._id)
+                                        }
+                                        className="p-0"
+                                      >
+                                        Delete
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Comment Content - Edit Mode hoặc Display Mode */}
+                          {editingComment === comment._id ? (
+                            <div className="bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
+                              <Form
+                                form={editForm}
+                                onFinish={() => handleSaveEdit(comment._id)}
+                              >
+                                <Form.Item
+                                  name="content"
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: "Comment cannot be empty!",
+                                    },
+                                    {
+                                      min: 5,
+                                      message:
+                                        "Comment must be at least 5 characters!",
+                                    },
+                                  ]}
+                                  className="mb-0"
+                                >
+                                  <TextArea
+                                    rows={3}
+                                    placeholder="Edit your comment..."
+                                    className="border-none shadow-none resize-none focus:ring-2 focus:ring-blue-500"
+                                    autoFocus
+                                  />
+                                </Form.Item>
+                              </Form>
+                            </div>
+                          ) : (
+                            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                              <p className="text-gray-700 leading-relaxed text-base">
+                                {comment.content}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Footer Info */}
+                          {editingComment !== comment._id && (
+                            <div className="flex items-center justify-between mt-3 text-xs text-gray-400">
+                              <span>Product Review</span>
+                              <span className="flex items-center gap-1">
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Verified Purchase
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p className="text-lg">No reviews yet</p>
-                    <p>Be the first to review this product!</p>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200"
+                  >
+                    <div className="max-w-sm mx-auto">
+                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m0 0V6a2 2 0 012-2h6a2 2 0 012 2v2"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        No reviews yet
+                      </h3>
+                      <p className="text-gray-500">
+                        Be the first to review this product!
+                      </p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Share your experience to help others
+                      </p>
+                    </div>
+                  </motion.div>
                 )}
               </div>
             </div>

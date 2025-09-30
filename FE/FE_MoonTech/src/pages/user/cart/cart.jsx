@@ -29,25 +29,45 @@ import {
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import {
+  addNewOrder,
   deleteItemFromCart,
+  getAuthenticatedUser,
   getUserCart,
   updateItemQuantity,
 } from "../../../services/apiServices";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
 
 const { Title, Text } = Typography;
 
 function Cart() {
+  const [cart, setCart] = useState(null);
   const [cartItems, setCartItems] = useState([]);
+  const [user, setUser] = useState(null);
+  const [address, setAddress] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUserCart();
+    fetchUser();
   }, []);
 
   const fetchUserCart = async () => {
     try {
       const res = await getUserCart();
+      setCart(res);
       setCartItems(res?.cartItem);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchUser = async () => {
+    try {
+      const res = await getAuthenticatedUser();
+      setUser(res);
+      const addr = res.shippingAddress.find((item) => item.isDefault);
+      setAddress(addr._id);
     } catch (error) {
       console.log(error);
     }
@@ -73,7 +93,6 @@ function Cart() {
 
   const updateQuantity = async (id, newQuantity) => {
     try {
-      console.log("HAHA", newQuantity);
       if (newQuantity < 1) return;
       const payload = {
         quantity: newQuantity,
@@ -108,10 +127,31 @@ function Cart() {
   };
 
   const calculateSubtotal = () => {
-    return cartItems.reduce(
+    return cartItems?.reduce(
       (total, item) => total + item.product.price * item.quantity,
       0
     );
+  };
+
+  const handleCreateOrder = async () => {
+    try {
+      const payload = {
+        user: user._id,
+        items: cart._id,
+        totalPrice: total,
+        shippingAddress: address,
+      };
+      const res = await addNewOrder(payload);
+
+      if (!res) {
+        toast.error("Cannot add new order!");
+      } else {
+        toast.success("Add new order success!");
+        navigate("/profile");
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const subtotal = calculateSubtotal();
@@ -124,7 +164,7 @@ function Cart() {
     return new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
   };
 
-  if (cartItems.length === 0) {
+  if (cartItems?.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-4 lg:p-8">
         <div className="max-w-4xl mx-auto">
@@ -211,7 +251,7 @@ function Cart() {
             <motion.div variants={itemVariants}>
               <Card className="shadow-lg border-0 rounded-2xl overflow-hidden">
                 <div className="space-y-6">
-                  {cartItems.map((item, index) => (
+                  {cartItems?.map((item, index) => (
                     <motion.div
                       key={item._id}
                       variants={itemVariants}
@@ -369,7 +409,7 @@ function Cart() {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between">
                     <Text className="text-gray-600">
-                      Subtotal ({cartItems.length} items)
+                      Subtotal ({cartItems?.length} items)
                     </Text>
                     <Text className="font-semibold">{formatVND(subtotal)}</Text>
                   </div>
@@ -424,6 +464,7 @@ function Cart() {
                     block
                     icon={<FileTextOutlined />}
                     className="bg-red-600 hover:bg-red-700 border-red-600 h-14 text-lg font-semibold mb-4"
+                    onClick={handleCreateOrder}
                   >
                     Create Order
                   </Button>

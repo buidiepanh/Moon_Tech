@@ -9,7 +9,7 @@ var cartSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["active", "checkedOut"],
+      enum: ["active", "deactive"],
       default: "active",
     },
     cartItem: [

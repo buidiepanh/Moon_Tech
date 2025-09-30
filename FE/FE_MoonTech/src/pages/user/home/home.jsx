@@ -262,7 +262,7 @@ function Home() {
                   className="relative"
                 >
                   <Card
-                    onClick={() => navigate(`/${product.id}`)}
+                    onClick={() => navigate(`/product-detail/${product.id}`)}
                     hoverable
                     className="h-full shadow-2xl border-0 overflow-hidden bg-white"
                     cover={
@@ -419,6 +419,9 @@ function Home() {
                         <Card
                           hoverable
                           className="h-full shadow-lg hover:shadow-xl transition-all duration-300"
+                          onClick={() =>
+                            navigate(`/product-detail/${product._id}`)
+                          }
                           cover={
                             <div className="relative overflow-hidden">
                               <img
