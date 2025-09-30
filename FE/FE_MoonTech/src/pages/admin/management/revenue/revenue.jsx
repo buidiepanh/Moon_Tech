@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -14,25 +14,69 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { BarChart3, DollarSign, ShoppingCart } from "lucide-react";
+import { BarChart3, Coins, DollarSign, ShoppingCart } from "lucide-react";
+import {
+  getAverageRevenue,
+  getCategoryPercentage,
+  getMonthlyRevenue,
+  getMonthRevenue,
+  getTotalRevenue,
+} from "../../../../services/apiServices";
 
-const revenueData = [
-  { month: "Jan", revenue: 12000, orders: 150 },
-  { month: "Feb", revenue: 19000, orders: 230 },
-  { month: "Mar", revenue: 15000, orders: 180 },
-  { month: "Apr", revenue: 22000, orders: 280 },
-  { month: "May", revenue: 18000, orders: 220 },
-  { month: "Jun", revenue: 25000, orders: 310 },
-];
-
-const categoryData = [
-  { name: "Electronics", value: 40, color: "#8b5cf6" },
-  { name: "Clothing", value: 30, color: "#06d6a0" },
-  { name: "Books", value: 20, color: "#f59e0b" },
-  { name: "Home & Garden", value: 10, color: "#ef4444" },
+const COLORS = [
+  "#8b5cf6",
+  "#06d6a0",
+  "#f59e0b",
+  "#ef4444",
+  "#3b82f6",
+  "#10b981",
 ];
 
 function Revenue() {
+  const [revenueData, setRevenueData] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [categoryData, setCategoryData] = useState([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [avgRevenue, setAvgRevenue] = useState(0);
+
+  useEffect(() => {
+    fetchRevenueData();
+  }, []);
+
+  const fetchRevenueData = async () => {
+    try {
+      const res1 = await getMonthlyRevenue();
+      setMonthlyRevenue(res1);
+
+      const res2 = await getMonthRevenue();
+      const formatted = Object.entries(res2).map(([month, revenue]) => ({
+        month,
+        revenue,
+      }));
+      setRevenueData(formatted);
+
+      const res3 = await getTotalRevenue();
+      setTotalRevenue(res3);
+
+      const res4 = await getCategoryPercentage();
+      setCategoryData(res4);
+
+      const res5 = await getAverageRevenue();
+      setAvgRevenue(res5);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const formatCurrency = (value) => {
+    if (!value) return "0 ₫";
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -44,49 +88,52 @@ function Revenue() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-gray-800 p-6 rounded-xl"
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-r from-violet-600 to-purple-700 p-6 rounded-2xl shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Total Revenue</p>
-              <p className="text-2xl font-bold text-white">$125,000</p>
-              <p className="text-green-400 text-sm">+12% from last month</p>
+              <p className="text-gray-200 text-sm">Total Revenue</p>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrency(totalRevenue)}
+              </p>
             </div>
-            <div className="p-3 bg-violet-600 rounded-lg">
-              <DollarSign className="text-white" size={24} />
+            <div className="p-3 bg-white/20 rounded-lg">
+              <Coins className="text-white" size={26} />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-gray-800 p-6 rounded-xl"
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Total Orders</p>
-              <p className="text-2xl font-bold text-white">1,370</p>
-              <p className="text-green-400 text-sm">+8% from last month</p>
+              <p className="text-gray-200 text-sm">Monthly Revenue</p>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrency(monthlyRevenue)}
+              </p>
             </div>
-            <div className="p-3 bg-blue-600 rounded-lg">
-              <ShoppingCart className="text-white" size={24} />
+            <div className="p-3 bg-white/20 rounded-lg">
+              <ShoppingCart className="text-white" size={26} />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-gray-800 p-6 rounded-xl"
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-r from-green-600 to-emerald-700 p-6 rounded-2xl shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Average Order</p>
-              <p className="text-2xl font-bold text-white">$91.20</p>
-              <p className="text-red-400 text-sm">-2% from last month</p>
+              <p className="text-gray-200 text-sm">Average Revenue / Order</p>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrency(avgRevenue)}
+              </p>
             </div>
-            <div className="p-3 bg-green-600 rounded-lg">
-              <BarChart3 className="text-white" size={24} />
+            <div className="p-3 bg-white/20 rounded-lg">
+              <BarChart3 className="text-white" size={26} />
             </div>
           </div>
         </motion.div>
@@ -138,7 +185,10 @@ function Revenue() {
                 dataKey="value"
               >
                 {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -146,8 +196,9 @@ function Revenue() {
                   backgroundColor: "#1F2937",
                   border: "1px solid #374151",
                   borderRadius: "8px",
-                  color: "#F9FAFB",
                 }}
+                itemStyle={{ color: "#fff" }}
+                labelStyle={{ color: "#fff" }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -157,7 +208,7 @@ function Revenue() {
                 <div key={index} className="flex items-center gap-2">
                   <div
                     className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: item.color }}
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   ></div>
                   <span className="text-gray-300 text-sm">{item.name}</span>
                 </div>

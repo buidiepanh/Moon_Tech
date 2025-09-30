@@ -19,7 +19,7 @@ function UserRouter() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/:productId" element={<Details />} />
+        <Route path="product-detail/:productId" element={<Details />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/orders/vnpay-return" element={<PaymentCallback />} />
       </Routes>

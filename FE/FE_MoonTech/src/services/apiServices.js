@@ -272,3 +272,48 @@ export const getAllOrders = async () => {
     console.log(error);
   }
 };
+
+export const getTotalRevenue = async () => {
+  try {
+    const res = await axios.get("/revenue/total-revenue");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getMonthlyRevenue = async () => {
+  try {
+    const res = await axios.get("/revenue/monthly-revenue");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getMonthRevenue = async () => {
+  try {
+    const res = await axios.get("/revenue/month-revenue");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getAverageRevenue = async () => {
+  try {
+    const res = await axios.get("/revenue/average-revenue");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getCategoryPercentage = async () => {
+  try {
+    const res = await axios.get("/revenue/category-revenue");
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
