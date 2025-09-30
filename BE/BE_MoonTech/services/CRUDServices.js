@@ -738,8 +738,7 @@ const getTotalRevenue = async (req, res, next) => {
     const orders = await Orders.find({
       status: { $in: ["paid", "delivered"] },
     });
-    let revenue = 0;
-    const total = orders.map((item) => (revenue += item.totalPrice));
+    const total = orders.reduce((acc, item) => (acc += item.totalPrice), 0);
     return res.status(200).json(total);
   } catch (error) {
     next(error);
@@ -767,18 +766,18 @@ const getMonthRevenue = async (req, res, next) => {
   try {
     const currYear = new Date().getFullYear();
     const months = [
-      "January",
-      "February",
-      "March",
-      "April",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
       "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
 
     const revenueByMonth = months.reduce((acc, month) => {
@@ -804,6 +803,77 @@ const getMonthRevenue = async (req, res, next) => {
     return res.status(200).json(revenueByMonth);
   } catch (error) {
     console.log(error);
+  }
+};
+
+const getAverageMoneyEachOrder = async (req, res, next) => {
+  try {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+      updatedAt: { $gte: oneMonthAgo, $lte: new Date() },
+    });
+
+    if (orders.length === 0) {
+      return res.status(200).json({ average: 0 });
+    }
+
+    const total = orders.reduce((acc, item) => (acc += item.totalPrice), 0);
+    const avg = total / orders.length;
+
+    return res.status(200).json(avg);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCategoryMoney = async (req, res, next) => {
+  try {
+    const orders = await Orders.find({
+      status: { $in: ["paid", "delivered"] },
+    }).populate({
+      path: "items",
+      populate: {
+        path: "cartItem.product",
+        model: "Products",
+        select: "name category price",
+        populate: {
+          path: "category",
+          model: "Categories",
+          select: "cateName",
+        },
+      },
+    });
+
+    const categoryTotals = {};
+    orders.forEach((order) => {
+      order.items.cartItem.forEach((cart) => {
+        const product = cart.product;
+        if (!product) return;
+
+        const cost = product.price * cart.quantity;
+        const cateName = product.category.cateName;
+        if (!categoryTotals[cateName]) {
+          categoryTotals[cateName] = 0;
+        }
+        categoryTotals[cateName] += cost;
+      });
+    });
+
+    const total = Object.values(categoryTotals).reduce(
+      (acc, val) => acc + val,
+      0
+    );
+    const result = Object.entries(categoryTotals).map(([name, money]) => ({
+      name,
+      value: total > 0 ? Math.round((money / total) * 100) : 0,
+    }));
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -853,4 +923,6 @@ module.exports = {
   getTotalRevenue,
   getMonthlyRevenue,
   getMonthRevenue,
+  getAverageMoneyEachOrder,
+  getCategoryMoney,
 };
