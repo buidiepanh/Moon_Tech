@@ -197,7 +197,7 @@ const getUserCartItem = async (req, res, next) => {
     const result = await Carts.findOne({
       user: req.user._id,
       status: "active",
-    }).populate("cartItem.product", "name price");
+    }).populate("cartItem.product", "name price image");
 
     if (!result) {
       res.status(400).json("User cart is empty!");
