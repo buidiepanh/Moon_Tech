@@ -59,10 +59,14 @@ function Header() {
   };
 
   const navItems = [
-    { key: "home", label: "Home", href: "#" },
-    { key: "products", label: "Products", href: "#" },
-    { key: "contact", label: "Contact", href: "#" },
-    { key: "about", label: "About Us", href: "#" },
+    { key: "home", label: "Home", onClick: () => navigate("/") },
+    {
+      key: "products",
+      label: "Products",
+      onClick: () => navigate("/products"),
+    },
+    { key: "contact", label: "Contact", onClick: () => navigate("/contact") },
+    { key: "about", label: "About Us", onClick: () => navigate("/about") },
   ];
 
   // Menu items for authenticated users
@@ -143,9 +147,12 @@ function Header() {
           {/* Navigation Menu - Desktop */}
           <nav className="hidden lg:flex items-center space-x-8">
             {navItems.map((item, index) => (
-              <motion.a
+              <motion.button
                 key={item.key}
-                href={item.href}
+                onClick={() => {
+                  item.onClick();
+                  setIsMenuOpen(false);
+                }}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 + 0.2 }}
@@ -153,11 +160,11 @@ function Header() {
                   scale: 1.1,
                   color: "#DC2626",
                 }}
-                className="text-gray-700 hover:text-red-600 font-medium text-base transition-all duration-300 relative group"
+                className="bg-transparent border-none text-gray-700 hover:text-red-600 font-medium text-base transition-all duration-300 relative group"
               >
                 {item.label}
                 <motion.div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 group-hover:w-full transition-all duration-300" />
-              </motion.a>
+              </motion.button>
             ))}
           </nav>
 

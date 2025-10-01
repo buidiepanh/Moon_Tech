@@ -265,8 +265,12 @@ function Cart() {
                           className="flex-shrink-0"
                         >
                           <div className="relative">
-                            <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
-                              <ShoppingCartOutlined className="text-2xl text-gray-400" />
+                            <div className="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
+                              <img
+                                src={item.product.image}
+                                alt={item.product.name}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                           </div>
                         </motion.div>

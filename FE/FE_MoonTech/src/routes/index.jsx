@@ -9,6 +9,7 @@ import Cart from "../pages/user/cart/cart";
 import Profile from "../pages/user/profile/profile";
 import Admin from "../pages/admin/admin";
 import PaymentCallback from "../pages/user/payment-callback/paymentCallback";
+import Product from "../pages/user/product/product";
 
 function UserRouter() {
   return (
@@ -20,6 +21,7 @@ function UserRouter() {
         <Route path="/signup" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="product-detail/:productId" element={<Details />} />
+        <Route path="/products" element={<Product />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/orders/vnpay-return" element={<PaymentCallback />} />
       </Routes>
