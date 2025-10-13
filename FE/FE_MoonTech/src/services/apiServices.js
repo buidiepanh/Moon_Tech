@@ -226,6 +226,15 @@ export const paymentCallBack = async (url) => {
   }
 };
 
+export const chatWithAI = async (payload) => {
+  try {
+    const res = await axios.post("/chatbot/chat", payload);
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 //=========================ADMIN API==============================
 
 export const addNewProduct = async (payload) => {

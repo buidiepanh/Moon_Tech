@@ -11,6 +11,7 @@ import {
 } from "@ant-design/icons";
 import { getAllProducts } from "../../../services/apiServices";
 import { useNavigate } from "react-router";
+import ChatBotWidget from "../../../components/widget/chatbotWidget";
 
 function Home() {
   const [currentHotIndex, setCurrentHotIndex] = useState(0);
@@ -550,6 +551,7 @@ function Home() {
           )}
         </div>
       </motion.section>
+      <ChatBotWidget />
     </motion.div>
   );
 }
